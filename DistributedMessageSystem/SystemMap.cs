@@ -12,13 +12,10 @@ namespace DistributedMessanger
             var yaml = new YamlStream();
             yaml.Load(input);
 
-            // Get the root mapping
             var mapping = (YamlMappingNode)yaml.Documents[0].RootNode;
 
-            // Get the messageBoxes sequence
             var messageBoxes = (YamlSequenceNode)mapping.Children[new YamlScalarNode("systemMap")];
 
-            // Create the dictionary
             var result = new Dictionary<string, string>();
 
             foreach (var box in messageBoxes)

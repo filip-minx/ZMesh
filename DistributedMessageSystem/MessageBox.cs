@@ -2,8 +2,8 @@
 using NetMQ.Sockets;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
+using System.Diagnostics.Tracing;
 using System.ServiceModel.Channels;
-using System.Xml;
 
 namespace DistributedMessanger
 {
@@ -16,13 +16,16 @@ namespace DistributedMessanger
         private NetMQQueue<Message> _messageQueue = new NetMQQueue<Message>();
 
         // <ContentType, Message>
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> _messages = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> messages = new();
 
         // <ContentType, PendingQuestion>
         private readonly ConcurrentDictionary<string, ConcurrentQueue<PendingQuestion>> _pendingQuestions = new();
 
         // <CorrelationId, PendingAnswer>
         private readonly ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>> _pendingAnswers = new();
+
+        public event EventHandler<MessageReceivedEventArgs> TellReceived;
+        public event EventHandler<QuestionReceivedEventArgs> QuestionReceived;
 
         public MessageBox(string name, string address)
         {
@@ -45,7 +48,6 @@ namespace DistributedMessanger
                 WriteAnswerMessage(answerMessage);
             };
 
-            
             _poller.RunAsync();
         }
 
@@ -62,11 +64,22 @@ namespace DistributedMessanger
             }
         }
 
-        internal void WriteMessage(Message message)
+        internal void WriteTellMessage(Message message)
         {
-            var queue = _messages.GetOrAdd(message.ContentType, _ => new ConcurrentQueue<string>());
+            var queue = messages.GetOrAdd(message.ContentType, _ => new ConcurrentQueue<string>());
 
             queue.Enqueue(message.Content);
+
+            TellReceived?.Invoke(this, new MessageReceivedEventArgs(message.ContentType));
+        }
+
+        internal void WriteQuestionMessage(PendingQuestion pendingQuestion)
+        {
+            var queue = _pendingQuestions.GetOrAdd(pendingQuestion.QuestionMessage.ContentType, _ => new ConcurrentQueue<PendingQuestion>());
+
+            queue.Enqueue(pendingQuestion);
+
+            QuestionReceived?.Invoke(this, new QuestionReceivedEventArgs(pendingQuestion.QuestionMessage.ContentType, pendingQuestion.QuestionMessage.AnswerContentType));
         }
 
         internal void WriteAnswerMessage(AnswerMessage message)
@@ -85,7 +98,7 @@ namespace DistributedMessanger
 
         public bool TryListen<TMessage>(Action<TMessage> handler)
         {
-            var queue = _messages.GetOrAdd(typeof(TMessage).Name, _ => new ConcurrentQueue<string>());
+            var queue = messages.GetOrAdd(typeof(TMessage).Name, _ => new ConcurrentQueue<string>());
 
             if (!queue.TryDequeue(out var message))
             {
@@ -93,6 +106,20 @@ namespace DistributedMessanger
             }
 
             handler(JsonConvert.DeserializeObject<TMessage>(message));
+
+            return true;
+        }
+
+        public bool TryListen(string contentType, Action<object> handler)
+        {
+            var queue = messages.GetOrAdd(contentType, _ => new ConcurrentQueue<string>());
+
+            if (!queue.TryDequeue(out var message))
+            {
+                return false;
+            }
+
+            handler(JsonConvert.DeserializeObject(message, TypeResolver.GetTypeInAllAssemblies(contentType)));
 
             return true;
         }
@@ -108,8 +135,9 @@ namespace DistributedMessanger
 
             var questionMessage = JsonConvert.DeserializeObject<TQuestion>(pendingQuestion.QuestionMessage.Content);
 
-            var answer = handler.DynamicInvoke(new object[] { questionMessage });
-            var answerContentJson = JsonConvert.SerializeObject(answer, Newtonsoft.Json.Formatting.Indented, new JsonSerializerSettings()
+            var answer = handler(questionMessage);
+
+            var answerContentJson = JsonConvert.SerializeObject(answer, Formatting.Indented, new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.None
             });
@@ -133,6 +161,21 @@ namespace DistributedMessanger
             return true;
         }
 
+        public IPendingQuestion GetQuestion(string questionType, string answerType, out bool available)
+        {
+            var queue = _pendingQuestions.GetOrAdd(questionType, _ => new ConcurrentQueue<PendingQuestion>());
+
+            if (!queue.TryDequeue(out var pendingQuestion))
+            {
+                available = false;
+                return null;
+            }
+
+            available = true;
+
+            return pendingQuestion;
+        }
+
         public void Tell<TMessage>(TMessage message)
         {
             var tellMessage = new TellMessage
@@ -154,7 +197,8 @@ namespace DistributedMessanger
                 ContentType = typeof(TQuestion).Name,
                 Content = JsonConvert.SerializeObject(question),
                 MessageBoxName = _name,
-                CorrelationId = correlationId
+                CorrelationId = correlationId,
+                AnswerContentType = typeof(TAnswer).Name
             };
 
             var tcs = new TaskCompletionSource<TAnswer>();
@@ -171,13 +215,6 @@ namespace DistributedMessanger
             _messageQueue.Enqueue(questionMessage);
 
             return await tcs.Task;
-        }
-
-        internal void WriteQuestion(PendingQuestion pendingQuestion)
-        {
-            var queue = _pendingQuestions.GetOrAdd(pendingQuestion.QuestionMessage.ContentType, _ => new ConcurrentQueue<PendingQuestion>());
-
-            queue.Enqueue(pendingQuestion);
         }
     }
 }

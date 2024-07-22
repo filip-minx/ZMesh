@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 
 namespace DistributedMessanger
 {
-    public class MessageSystem
+    public class ZMesh
     {
         private readonly Dictionary<string, string> _systemMap;
         private RouterSocket _routerSocket;
@@ -14,7 +14,7 @@ namespace DistributedMessanger
         private ConcurrentDictionary<string, MessageBox> _messageBoxes = new ConcurrentDictionary<string, MessageBox>();
         private NetMQQueue<IdentityMessage<AnswerMessage>> _answerQueue = new NetMQQueue<IdentityMessage<AnswerMessage>>();
 
-        public MessageSystem(string address, Dictionary<string, string> systemMap)
+        public ZMesh(string address, Dictionary<string, string> systemMap)
         {
             if (address != null)
             {
@@ -65,19 +65,19 @@ namespace DistributedMessanger
             {
                 case MessageType.Tell:
                     var answerMessage = (TellMessage)message;
-                    messageBox?.WriteMessage(answerMessage);
+                    messageBox?.WriteTellMessage(answerMessage);
                     break;
 
                 case MessageType.Question:
                     var questionMessage = (QuestionMessage)message;
-                    var pendingQuestion = new PendingQuestion
+                    var pendingQuestion = new PendingQuestion(questionMessage.MessageBoxName)
                     {
                         DealerIdentity = identity,
                         QuestionMessage = questionMessage,
                         AnswerQueue = _answerQueue
                     };
 
-                    messageBox?.WriteQuestion(pendingQuestion);
+                    messageBox?.WriteQuestionMessage(pendingQuestion);
 
                     break;
             }

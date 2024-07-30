@@ -1,11 +1,13 @@
 ﻿using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.Tracing;
 using System.ServiceModel.Channels;
+using System.Threading.Tasks;
 
-namespace DistributedMessanger
+namespace Minx.ZMesh
 {
     public class MessageBox
     {
@@ -16,13 +18,13 @@ namespace DistributedMessanger
         private NetMQQueue<Message> _messageQueue = new NetMQQueue<Message>();
 
         // <ContentType, Message>
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> messages = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> messages = new ConcurrentDictionary<string, ConcurrentQueue<string>>();
 
         // <ContentType, PendingQuestion>
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<PendingQuestion>> _pendingQuestions = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<PendingQuestion>> _pendingQuestions = new ConcurrentDictionary<string, ConcurrentQueue<PendingQuestion>>();
 
         // <CorrelationId, PendingAnswer>
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>> _pendingAnswers = new();
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>> _pendingAnswers = new ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>>();
 
         public event EventHandler<MessageReceivedEventArgs> TellReceived;
         public event EventHandler<QuestionReceivedEventArgs> QuestionReceived;
@@ -51,7 +53,7 @@ namespace DistributedMessanger
             _poller.RunAsync();
         }
 
-        private void DequeueAndSendMessage(object? sender, NetMQQueueEventArgs<Message> e)
+        private void DequeueAndSendMessage(object sender, NetMQQueueEventArgs<Message> e)
         {
             if (_messageQueue.TryDequeue(out var message, TimeSpan.Zero))
             {
@@ -188,6 +190,18 @@ namespace DistributedMessanger
             _messageQueue.Enqueue(tellMessage);
         }
 
+        public void Tell(string contentType, string content)
+        {
+            var tellMessage = new TellMessage
+            {
+                ContentType = contentType,
+                Content = content,
+                MessageBoxName = _name
+            };
+
+            _messageQueue.Enqueue(tellMessage);
+        }
+
         public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question)
         {
             var correlationId = Guid.NewGuid().ToString();
@@ -215,6 +229,11 @@ namespace DistributedMessanger
             _messageQueue.Enqueue(questionMessage);
 
             return await tcs.Task;
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>() where TQuestion : new()
+        {
+            return await Ask<TQuestion, TAnswer>(new TQuestion());
         }
     }
 }

@@ -1,14 +1,18 @@
 ﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 
-namespace DistributedMessanger
+namespace Minx.ZMesh
 {
     public class MessageBoxProcessor : IDisposable
     {
         private readonly MessageBox messageBox;
 
-        private Dictionary<string, Action<object>> tellHandlers = new();
-        private Dictionary<string, Func<object, object>> questionHandlers = new();
+        private Dictionary<string, Action<object>> tellHandlers = new Dictionary<string, Action<object>>();
+        private Dictionary<string, Func<object, object>> questionHandlers = new Dictionary<string, Func<object, object>>();
 
         private bool isDisposed;
         private readonly Channel<EventArgs> eventChannel;
@@ -23,12 +27,12 @@ namespace DistributedMessanger
             messageBox.QuestionReceived += MessageBox_QuestionReceived;
         }
 
-        private void MessageBox_QuestionReceived(object? sender, QuestionReceivedEventArgs e)
+        private void MessageBox_QuestionReceived(object sender, QuestionReceivedEventArgs e)
         {
             QueueEvent(e);
         }
 
-        private void MessageBox_TellReceived(object? sender, MessageReceivedEventArgs e)
+        private void MessageBox_TellReceived(object sender, MessageReceivedEventArgs e)
         {
             QueueEvent(e);
         }
@@ -49,6 +53,17 @@ namespace DistributedMessanger
             }
         }
 
+        public async Task ProcessAll()
+        {
+            while (await eventChannel.Reader.WaitToReadAsync())
+            {
+                while (eventChannel.Reader.TryRead(out var eventArgs))
+                {
+                    HandleEvent(eventArgs);
+                }
+            }
+        }
+
         private void HandleEvent(EventArgs eventArgs)
         {
             switch (eventArgs)
@@ -61,14 +76,15 @@ namespace DistributedMessanger
                     OnQuestionReceived(this, questionArgs);
                     break;
             }
+
         }
 
-        private void OnMessageReceived(object? sender, MessageReceivedEventArgs e)
+        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
         {
             messageBox.TryListen(e.ContentType, tellHandlers[e.ContentType]);
         }
 
-        private void OnQuestionReceived(object? sender, QuestionReceivedEventArgs e)
+        private void OnQuestionReceived(object sender, QuestionReceivedEventArgs e)
         {
             var pendingQuestion = messageBox.GetQuestion(e.QuestionContentType, e.AnswerContentType, out var available);
 

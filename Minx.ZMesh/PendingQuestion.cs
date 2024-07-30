@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using System.Xml.Linq;
 
-namespace DistributedMessanger
+namespace Minx.ZMesh
 {
     public class PendingQuestion : IPendingQuestion
     {

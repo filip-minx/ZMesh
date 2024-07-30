@@ -1,4 +1,4 @@
-﻿namespace DistributedMessanger
+﻿namespace Minx.ZMesh
 {
     public abstract class Message
     {

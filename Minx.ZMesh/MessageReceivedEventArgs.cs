@@ -1,4 +1,6 @@
-﻿namespace DistributedMessanger
+﻿using System;
+
+namespace Minx.ZMesh
 {
     public class MessageReceivedEventArgs : EventArgs
     {

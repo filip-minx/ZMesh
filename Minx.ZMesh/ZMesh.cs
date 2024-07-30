@@ -1,9 +1,11 @@
 ﻿using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
-namespace DistributedMessanger
+namespace Minx.ZMesh
 {
     public class ZMesh
     {
@@ -38,7 +40,7 @@ namespace DistributedMessanger
                 _ => new MessageBox(name, _systemMap[name]));
         }
 
-        private void DequeueAndSendAnswer(object? sender, NetMQQueueEventArgs<IdentityMessage<AnswerMessage>> e)
+        private void DequeueAndSendAnswer(object sender, NetMQQueueEventArgs<IdentityMessage<AnswerMessage>> e)
         {
             if (_answerQueue.TryDequeue(out var message, TimeSpan.Zero))
             {
@@ -51,10 +53,10 @@ namespace DistributedMessanger
             }
         }
 
-        private void HandleMessage(object? sender, NetMQSocketEventArgs e)
+        private void HandleMessage(object sender, NetMQSocketEventArgs e)
         {
             var identity = e.Socket.ReceiveFrameString();
-            var messageType = Enum.Parse<MessageType>(e.Socket.ReceiveFrameString());
+            var messageType = (MessageType)Enum.Parse(typeof(MessageType), e.Socket.ReceiveFrameString());
             var messageJson = e.Socket.ReceiveFrameString();
 
             Message message = DeserializeMessage(messageType, messageJson);
@@ -81,8 +83,6 @@ namespace DistributedMessanger
 
                     break;
             }
-
-            //messageBox?.WriteMessage(message);
         }
 
         private Message DeserializeMessage(MessageType messageType, string messageJson)

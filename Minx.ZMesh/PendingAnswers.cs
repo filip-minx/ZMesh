@@ -1,4 +1,7 @@
-﻿namespace DistributedMessanger
+﻿using System;
+using System.Threading.Tasks;
+
+namespace Minx.ZMesh
 {
     public class PendingAnswers<TAnswer> : IPendingAnswer
     {

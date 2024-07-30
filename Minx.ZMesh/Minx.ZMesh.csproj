@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net8.0;net48</TargetFrameworks>
+
+		<Authors>Filip Minx</Authors>
+		<Company>Minx</Company>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="NetMQ" Version="4.0.1.13" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	  <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
+	  <PackageReference Include="YamlDotNet" Version="16.0.0" />
+	</ItemGroup>
+</Project>

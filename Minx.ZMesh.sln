@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DistributedMessageSystem", "DistributedMessageSystem\DistributedMessageSystem.csproj", "{D7FB1E8C-456D-4C1C-8158-D7E2DC209A2B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Minx.ZMesh", "Minx.ZMesh\Minx.ZMesh.csproj", "{41E0F05C-4865-44BD-B99F-9A329D9BF5F2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{D7FB1E8C-456D-4C1C-8158-D7E2DC209A2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D7FB1E8C-456D-4C1C-8158-D7E2DC209A2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D7FB1E8C-456D-4C1C-8158-D7E2DC209A2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D7FB1E8C-456D-4C1C-8158-D7E2DC209A2B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{41E0F05C-4865-44BD-B99F-9A329D9BF5F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{41E0F05C-4865-44BD-B99F-9A329D9BF5F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{41E0F05C-4865-44BD-B99F-9A329D9BF5F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{41E0F05C-4865-44BD-B99F-9A329D9BF5F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {D899C0EE-F2AB-4AC0-9AAF-DDD3E1415CBF}
+		SolutionGuid = {C153C2A2-1ECD-4B58-AFDB-EE8E69AAD586}
 	EndGlobalSection
 EndGlobal

@@ -81,7 +81,7 @@ namespace Minx.ZMesh
 
             queue.Enqueue(pendingQuestion);
 
-            QuestionReceived?.Invoke(this, new QuestionReceivedEventArgs(pendingQuestion.QuestionMessage.ContentType, pendingQuestion.QuestionMessage.AnswerContentType));
+            QuestionReceived?.Invoke(this, new QuestionReceivedEventArgs(pendingQuestion.QuestionMessage.ContentType));
         }
 
         internal void WriteAnswerMessage(AnswerMessage message)
@@ -90,10 +90,7 @@ namespace Minx.ZMesh
             {
                 if (answerQueue.TryDequeue(out var pendingAnswer))
                 {
-                    var type = pendingAnswer.GetAnswerType();
-                    var answer = JsonConvert.DeserializeObject(message.Content, type);
-
-                    pendingAnswer.SetAnswer(answer);
+                    pendingAnswer.SetAnswer(message.Content);
                 }
             }
         }
@@ -163,7 +160,7 @@ namespace Minx.ZMesh
             return true;
         }
 
-        public IPendingQuestion GetQuestion(string questionType, string answerType, out bool available)
+        public IPendingQuestion GetQuestion(string questionType, out bool available)
         {
             var queue = _pendingQuestions.GetOrAdd(questionType, _ => new ConcurrentQueue<PendingQuestion>());
 
@@ -178,18 +175,6 @@ namespace Minx.ZMesh
             return pendingQuestion;
         }
 
-        public void Tell<TMessage>(TMessage message)
-        {
-            var tellMessage = new TellMessage
-            {
-                ContentType = typeof(TMessage).Name,
-                Content = JsonConvert.SerializeObject(message),
-                MessageBoxName = _name
-            };
-
-            _messageQueue.Enqueue(tellMessage);
-        }
-
         public void Tell(string contentType, string content)
         {
             var tellMessage = new TellMessage
@@ -202,22 +187,26 @@ namespace Minx.ZMesh
             _messageQueue.Enqueue(tellMessage);
         }
 
-        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question)
+        public void Tell<TMessage>(TMessage message)
+        {
+            Tell(typeof(TMessage).Name, JsonConvert.SerializeObject(message));
+        }
+
+        public async Task<string> Ask(string contentType, string content)
         {
             var correlationId = Guid.NewGuid().ToString();
 
             var questionMessage = new QuestionMessage
             {
-                ContentType = typeof(TQuestion).Name,
-                Content = JsonConvert.SerializeObject(question),
+                ContentType = contentType,
+                Content = content,
                 MessageBoxName = _name,
-                CorrelationId = correlationId,
-                AnswerContentType = typeof(TAnswer).Name
+                CorrelationId = correlationId
             };
 
-            var tcs = new TaskCompletionSource<TAnswer>();
+            var tcs = new TaskCompletionSource<string>();
 
-            var pendingAnswer = new PendingAnswers<TAnswer>
+            var pendingAnswer = new PendingAnswers
             {
                 CorrelationId = correlationId,
                 TaskCompletionSource = tcs
@@ -231,9 +220,22 @@ namespace Minx.ZMesh
             return await tcs.Task;
         }
 
+        public async Task<string> Ask(string contentType)
+        {
+            return await Ask(contentType, "{}");
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question)
+        {
+            var answerContent = await Ask(typeof(TQuestion).Name, JsonConvert.SerializeObject(question));
+            return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+        }
+
         public async Task<TAnswer> Ask<TQuestion, TAnswer>() where TQuestion : new()
         {
             return await Ask<TQuestion, TAnswer>(new TQuestion());
         }
+
+        
     }
 }

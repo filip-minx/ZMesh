@@ -6,8 +6,6 @@ namespace Minx.ZMesh
     {
         string CorrelationId { get; }
 
-        void SetAnswer(object answer);
-
-        Type GetAnswerType();
+        void SetAnswer(string answer);
     }
 }

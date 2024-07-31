@@ -86,7 +86,7 @@ namespace Minx.ZMesh
 
         private void OnQuestionReceived(object sender, QuestionReceivedEventArgs e)
         {
-            var pendingQuestion = messageBox.GetQuestion(e.QuestionContentType, e.AnswerContentType, out var available);
+            var pendingQuestion = messageBox.GetQuestion(e.QuestionContentType, out var available);
 
             if (available)
             {

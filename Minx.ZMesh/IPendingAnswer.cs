@@ -7,5 +7,7 @@ namespace Minx.ZMesh
         string CorrelationId { get; }
 
         void SetAnswer(string answer);
+
+        void Cancel();
     }
 }

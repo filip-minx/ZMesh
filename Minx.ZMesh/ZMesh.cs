@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Minx.ZMesh
 {
-    public class ZMesh
+    public class ZMesh : IDisposable
     {
         private readonly Dictionary<string, string> _systemMap;
         private RouterSocket _routerSocket;
@@ -96,6 +96,20 @@ namespace Minx.ZMesh
                 default:
                     throw new InvalidOperationException("Unknown message type");
             }
+        }
+
+        public void Dispose()
+        {
+            _poller?.Dispose();
+            _routerSocket?.Dispose();
+
+            foreach (var mb in _messageBoxes.Values)
+            {
+                mb.Dispose();
+            }
+
+            _poller = null;
+            _routerSocket = null;
         }
     }
 }

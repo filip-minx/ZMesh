@@ -14,5 +14,10 @@ namespace Minx.ZMesh
         {
             TaskCompletionSource.SetResult(answer);
         }
+
+        public void Cancel()
+        {
+            TaskCompletionSource.SetCanceled();
+        }
     }
 }

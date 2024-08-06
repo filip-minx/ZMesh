@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Minx.ZMesh
 {
-    public class MessageBox
+    public class MessageBox : IDisposable
     {
         private readonly string _name;
 
@@ -236,6 +236,18 @@ namespace Minx.ZMesh
             return await Ask<TQuestion, TAnswer>(new TQuestion());
         }
 
-        
+        public void Dispose()
+        {
+            _poller?.Dispose();
+            _dealerSocket?.Dispose();
+
+            foreach (var pendingAnswerQueue in _pendingAnswers.Values)
+            {
+                while (pendingAnswerQueue.TryDequeue(out var pendingAnswer))
+                {
+                    pendingAnswer.Cancel();
+                }
+            }
+        }
     }
 }

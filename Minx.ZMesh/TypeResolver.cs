@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
+using System.Reflection;
 
 namespace Minx.ZMesh
 {
@@ -22,6 +24,11 @@ namespace Minx.ZMesh
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
                 {
                     type = assembly.GetType(typeName);
+
+                    if (type == null)
+                    {
+                        type = assembly.GetTypes().FirstOrDefault(t => t.Name == typeName);
+                    }
 
                     if (type != null)
                     {

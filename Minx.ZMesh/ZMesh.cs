@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Minx.ZMesh
 {
-    public class ZMesh : IDisposable
+    public class ZMesh : IZMesh, IDisposable
     {
         private readonly Dictionary<string, string> _systemMap;
         private RouterSocket _routerSocket;
@@ -21,7 +21,7 @@ namespace Minx.ZMesh
             if (address != null)
             {
                 _routerSocket = new RouterSocket();
-                _routerSocket.Bind(address);
+                _routerSocket.Bind("tcp://" + address);
 
                 _poller = new NetMQPoller { _routerSocket, _answerQueue };
                 _poller.RunAsync();

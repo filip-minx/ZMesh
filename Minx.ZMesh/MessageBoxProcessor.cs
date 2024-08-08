@@ -1,7 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
@@ -86,16 +84,7 @@ namespace Minx.ZMesh
 
         private void OnQuestionReceived(object sender, QuestionReceivedEventArgs e)
         {
-            var pendingQuestion = messageBox.GetQuestion(e.QuestionContentType, out var available);
-
-            if (available)
-            {
-                var questionObject = JsonConvert.DeserializeObject(pendingQuestion.QuestionMessage.Content, TypeResolver.GetTypeInAllAssemblies(pendingQuestion.QuestionMessage.ContentType));
-
-                var answer = questionHandlers[e.QuestionContentType](questionObject);
-
-                pendingQuestion.Answer(answer);
-            }
+            messageBox.TryAnswer(e.QuestionContentType, questionHandlers[e.QuestionContentType]);
         }
 
         public void Listen<TMessage>(Action<TMessage> handler)

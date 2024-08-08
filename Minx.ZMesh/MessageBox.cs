@@ -3,13 +3,11 @@ using NetMQ.Sockets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics.Tracing;
-using System.ServiceModel.Channels;
 using System.Threading.Tasks;
 
 namespace Minx.ZMesh
 {
-    public class MessageBox : IDisposable
+    public class MessageBox : IMessageBox, IDisposable
     {
         private readonly string _name;
 
@@ -160,6 +158,42 @@ namespace Minx.ZMesh
             return true;
         }
 
+        public bool TryAnswer(string questionContentType, Func<object, object> handler)
+        {
+            var queue = _pendingQuestions.GetOrAdd(questionContentType, _ => new ConcurrentQueue<PendingQuestion>());
+
+            if (!queue.TryDequeue(out var pendingQuestion))
+            {
+                return false;
+            }
+
+            var questionMessage = JsonConvert.DeserializeObject(pendingQuestion.QuestionMessage.Content, TypeResolver.GetTypeInAllAssemblies(questionContentType));
+
+            var answer = handler(questionMessage);
+
+            var answerContentJson = JsonConvert.SerializeObject(answer, Formatting.Indented, new JsonSerializerSettings()
+            {
+                TypeNameHandling = TypeNameHandling.None
+            });
+
+            var answerMessage = new AnswerMessage
+            {
+                Content = answerContentJson,
+                MessageBoxName = _name,
+                CorrelationId = pendingQuestion.QuestionMessage.CorrelationId
+            };
+
+            var answerWithIdentity = new IdentityMessage<AnswerMessage>
+            {
+                Message = answerMessage,
+                DealerIdentity = pendingQuestion.DealerIdentity
+            };
+
+            pendingQuestion.AnswerQueue.Enqueue(answerWithIdentity);
+
+            return true;
+        }
+
         public IPendingQuestion GetQuestion(string questionType, out bool available)
         {
             var queue = _pendingQuestions.GetOrAdd(questionType, _ => new ConcurrentQueue<PendingQuestion>());
@@ -206,7 +240,7 @@ namespace Minx.ZMesh
 
             var tcs = new TaskCompletionSource<string>();
 
-            var pendingAnswer = new PendingAnswers
+            var pendingAnswer = new PendingAnswer
             {
                 CorrelationId = correlationId,
                 TaskCompletionSource = tcs

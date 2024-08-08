@@ -5,6 +5,7 @@
         string DealerIdentity { get; set; }
 
         QuestionMessage QuestionMessage { get; set; }
+
         void Answer(object answer);
     }
 }

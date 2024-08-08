@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Minx.ZMesh
+﻿namespace Minx.ZMesh
 {
     public interface IPendingAnswer
     {

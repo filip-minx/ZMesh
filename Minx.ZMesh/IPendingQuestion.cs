@@ -1,4 +1,6 @@
-﻿namespace Minx.ZMesh
+﻿using Minx.ZMesh.Models;
+
+namespace Minx.ZMesh
 {
     public interface IPendingQuestion
     {

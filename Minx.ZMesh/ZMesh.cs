@@ -1,9 +1,11 @@
-﻿using NetMQ;
+﻿using Minx.ZMesh.Models;
+using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Minx.ZMesh
 {
@@ -34,7 +36,7 @@ namespace Minx.ZMesh
             _systemMap = systemMap;
         }
 
-        public MessageBox At(string name)
+        public IMessageBox At(string name)
         {
             return _messageBoxes.GetOrAdd(name,
                 _ => new MessageBox(name, _systemMap[name]));
@@ -61,7 +63,7 @@ namespace Minx.ZMesh
 
             Message message = DeserializeMessage(messageType, messageJson);
 
-            var messageBox = At(message.MessageBoxName);
+            var messageBox = (MessageBox)At(message.MessageBoxName);
 
             switch (messageType)
             {

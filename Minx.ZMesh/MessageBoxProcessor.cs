@@ -5,17 +5,17 @@ using System.Threading.Tasks;
 
 namespace Minx.ZMesh
 {
-    public class MessageBoxProcessor : IDisposable
+    public class MessageBoxProcessor : IMessageBoxProcessor, IDisposable
     {
-        private readonly MessageBox messageBox;
+        private readonly IMessageBox messageBox;
 
-        private Dictionary<string, Action<object>> tellHandlers = new Dictionary<string, Action<object>>();
-        private Dictionary<string, Func<object, object>> questionHandlers = new Dictionary<string, Func<object, object>>();
-
-        private bool isDisposed;
+        private readonly Dictionary<string, Action<object>> tellHandlers = new Dictionary<string, Action<object>>();
+        private readonly Dictionary<string, Func<object, object>> questionHandlers = new Dictionary<string, Func<object, object>>();
         private readonly Channel<EventArgs> eventChannel;
 
-        public MessageBoxProcessor(MessageBox messageBox)
+        private bool isDisposed;
+
+        public MessageBoxProcessor(IMessageBox messageBox)
         {
             this.messageBox = messageBox;
 
@@ -74,7 +74,6 @@ namespace Minx.ZMesh
                     OnQuestionReceived(this, questionArgs);
                     break;
             }
-
         }
 
         private void OnMessageReceived(object sender, MessageReceivedEventArgs e)

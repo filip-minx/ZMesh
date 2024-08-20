@@ -1,4 +1,4 @@
-﻿namespace Minx.ZMesh
+﻿namespace Minx.ZMesh.Models
 {
     public class TellMessage : Message
     {

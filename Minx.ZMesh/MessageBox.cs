@@ -27,7 +27,7 @@ namespace Minx.ZMesh
         private readonly ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>> _pendingAnswers = new ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>>();
 
         public event EventHandler<MessageReceivedEventArgs> TellReceived;
-        public event EventHandler<QuestionReceivedEventArgs> QuestionReceived;
+        public event EventHandler<MessageReceivedEventArgs> QuestionReceived;
 
         public MessageBox(string name, string address)
         {
@@ -81,7 +81,7 @@ namespace Minx.ZMesh
 
             queue.Enqueue(pendingQuestion);
 
-            QuestionReceived?.Invoke(this, new QuestionReceivedEventArgs(pendingQuestion.QuestionMessage.ContentType));
+            QuestionReceived?.Invoke(this, new MessageReceivedEventArgs(pendingQuestion.QuestionMessage.ContentType));
         }
 
         internal void WriteAnswerMessage(AnswerMessage message)

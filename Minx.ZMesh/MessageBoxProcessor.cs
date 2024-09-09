@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Minx.ZMesh.Models;
+using System;
 using System.Collections.Generic;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -11,7 +12,7 @@ namespace Minx.ZMesh
 
         private readonly Dictionary<string, Action<object>> tellHandlers = new Dictionary<string, Action<object>>();
         private readonly Dictionary<string, Func<object, object>> questionHandlers = new Dictionary<string, Func<object, object>>();
-        private readonly Channel<EventArgs> eventChannel;
+        private readonly Channel<(MessageType messageType, string contentType)> messageChannel;
 
         private bool isDisposed;
 
@@ -19,71 +20,64 @@ namespace Minx.ZMesh
         {
             this.messageBox = messageBox;
 
-            eventChannel = Channel.CreateUnbounded<EventArgs>();
+            messageChannel = Channel.CreateUnbounded<(MessageType, string)>();
 
             messageBox.TellReceived += MessageBox_TellReceived;
             messageBox.QuestionReceived += MessageBox_QuestionReceived;
         }
 
-        private void MessageBox_QuestionReceived(object sender, QuestionReceivedEventArgs e)
+        private void MessageBox_QuestionReceived(object sender, MessageReceivedEventArgs e)
         {
-            QueueEvent(e);
+            QueueMessageChannelItem(e.ContentType, MessageType.Question);
         }
 
         private void MessageBox_TellReceived(object sender, MessageReceivedEventArgs e)
         {
-            QueueEvent(e);
+            QueueMessageChannelItem(e.ContentType, MessageType.Tell);
         }
 
-        private void QueueEvent(EventArgs e)
+        private void QueueMessageChannelItem(string contentType, MessageType messageType)
         {
             if (!isDisposed)
             {
-                eventChannel.Writer.TryWrite(e);
+                messageChannel.Writer.TryWrite((messageType, contentType));
             }
         }
 
         public void ProcessOne()
         {
-            if (eventChannel.Reader.TryRead(out var eventArgs))
+            if (messageChannel.Reader.TryRead(out var item))
             {
-                HandleEvent(eventArgs);
+                HandleMessage(item.messageType, item.contentType);
             }
         }
 
         public async Task ProcessAll()
         {
-            while (await eventChannel.Reader.WaitToReadAsync())
+            while (await messageChannel.Reader.WaitToReadAsync())
             {
-                while (eventChannel.Reader.TryRead(out var eventArgs))
+                while (messageChannel.Reader.TryRead(out var item))
                 {
-                    HandleEvent(eventArgs);
+                    HandleMessage(item.messageType, item.contentType);
                 }
             }
         }
 
-        private void HandleEvent(EventArgs eventArgs)
+        private void HandleMessage(MessageType messageType, string contentType)
         {
-            switch (eventArgs)
+            switch (messageType)
             {
-                case MessageReceivedEventArgs messageArgs:
-                    OnMessageReceived(this, messageArgs);
+                case MessageType.Tell:
+                    messageBox.TryListen(contentType, tellHandlers[contentType]);
                     break;
 
-                case QuestionReceivedEventArgs questionArgs:
-                    OnQuestionReceived(this, questionArgs);
+                case MessageType.Question:
+                    messageBox.TryAnswer(contentType, questionHandlers[contentType]);
                     break;
+
+                default:
+                    throw new InvalidOperationException($"Unexpected message type: {messageType}");
             }
-        }
-
-        private void OnMessageReceived(object sender, MessageReceivedEventArgs e)
-        {
-            messageBox.TryListen(e.ContentType, tellHandlers[e.ContentType]);
-        }
-
-        private void OnQuestionReceived(object sender, QuestionReceivedEventArgs e)
-        {
-            messageBox.TryAnswer(e.QuestionContentType, questionHandlers[e.QuestionContentType]);
         }
 
         public void Listen<TMessage>(Action<TMessage> handler)
@@ -102,7 +96,7 @@ namespace Minx.ZMesh
             messageBox.QuestionReceived -= MessageBox_QuestionReceived;
 
             isDisposed = true;
-            eventChannel.Writer.Complete();
+            messageChannel.Writer.Complete();
         }
     }
 }

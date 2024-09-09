@@ -5,7 +5,7 @@ namespace Minx.ZMesh
 {
     public interface IMessageBox
     {
-        event EventHandler<QuestionReceivedEventArgs> QuestionReceived;
+        event EventHandler<MessageReceivedEventArgs> QuestionReceived;
         event EventHandler<MessageReceivedEventArgs> TellReceived;
 
         Task<string> Ask(string contentType);

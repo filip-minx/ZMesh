@@ -27,22 +27,18 @@ namespace Minx.ZMesh
             messageBox.QuestionReceived += MessageBox_QuestionReceived;
         }
 
-        private void MessageBox_QuestionReceived(object sender, MessageReceivedEventArgs e)
+        public void Listen<TMessage>(Action<TMessage> handler)
         {
-            QueueMessageChannelItem(e.ContentType, MessageType.Question);
+            ThrowIfArgumentIsNull(handler, nameof(handler));
+
+            tellHandlers[typeof(TMessage).Name] = message => handler((TMessage)message);
         }
 
-        private void MessageBox_TellReceived(object sender, MessageReceivedEventArgs e)
+        public void Answer<TQuestion, TAnswer>(Func<TQuestion, TAnswer> handler)
         {
-            QueueMessageChannelItem(e.ContentType, MessageType.Tell);
-        }
+            ThrowIfArgumentIsNull(handler, nameof(handler));
 
-        private void QueueMessageChannelItem(string contentType, MessageType messageType)
-        {
-            if (!isDisposed)
-            {
-                messageChannel.Writer.TryWrite((messageType, contentType));
-            }
+            questionHandlers[typeof(TQuestion).Name] = message => handler((TQuestion)message);
         }
 
         public void ProcessOne()
@@ -85,16 +81,23 @@ namespace Minx.ZMesh
         {
             if (questionHandlers.TryGetValue(contentType, out var handler))
             {
-                messageBox.TryAnswer(contentType, handler);
+                try
+                {
+                    messageBox.TryAnswer(contentType, handler);
+                }
+                catch (Exception ex)
+                {
+                    if (options.OnUnhandledException == null)
+                    {
+                        throw;
+                    }
+
+                    options.OnUnhandledException?.Invoke(ex);
+                }
             }
             else
             {
-                if (options.OnMissingHandler == null)
-                {
-                    throw new InvalidOperationException($"No handler for message type: {contentType}");
-                }
-
-                options.OnMissingHandler?.Invoke((MessageType.Question, contentType));
+                InvokeMissingHandler(MessageType.Question, contentType);
             }
         }
 
@@ -102,31 +105,52 @@ namespace Minx.ZMesh
         {
             if (tellHandlers.TryGetValue(contentType, out var handler))
             {
-                messageBox.TryListen(contentType, handler);
+                try
+                {
+                    messageBox.TryListen(contentType, handler);
+                }
+                catch (Exception ex)
+                {
+                    if (options.OnUnhandledException == null)
+                    {
+                        throw;
+                    }
+
+                    options.OnUnhandledException?.Invoke(ex);
+                }
             }
             else
             {
-                if (options.OnMissingHandler == null)
-                {
-                    throw new InvalidOperationException($"No handler for message type: {contentType}");
-                }
-
-                options.OnMissingHandler?.Invoke((MessageType.Tell, contentType));
+                InvokeMissingHandler(MessageType.Tell, contentType);
             }
         }
 
-        public void Listen<TMessage>(Action<TMessage> handler)
+        private void InvokeMissingHandler(MessageType messageType, string contentType)
         {
-            ThrowIfArgumentIsNull(handler, nameof(handler));
+            if (options.OnMissingHandler == null)
+            {
+                throw new InvalidOperationException($"No handler for message type: {contentType}");
+            }
 
-            tellHandlers[typeof(TMessage).Name] = message => handler((TMessage)message);
+            options.OnMissingHandler?.Invoke(messageType, contentType);
         }
 
-        public void Answer<TQuestion, TAnswer>(Func<TQuestion, TAnswer> handler)
+        private void MessageBox_QuestionReceived(object sender, MessageReceivedEventArgs e)
         {
-            ThrowIfArgumentIsNull(handler, nameof(handler));
+            QueueMessageChannelItem(e.ContentType, MessageType.Question);
+        }
 
-            questionHandlers[typeof(TQuestion).Name] = message => handler((TQuestion)message);
+        private void MessageBox_TellReceived(object sender, MessageReceivedEventArgs e)
+        {
+            QueueMessageChannelItem(e.ContentType, MessageType.Tell);
+        }
+
+        private void QueueMessageChannelItem(string contentType, MessageType messageType)
+        {
+            if (!isDisposed)
+            {
+                messageChannel.Writer.TryWrite((messageType, contentType));
+            }
         }
 
         private static void ThrowIfArgumentIsNull(object argumentValue, string argumentName)
@@ -139,6 +163,11 @@ namespace Minx.ZMesh
 
         public void Dispose()
         {
+            if (isDisposed)
+            {
+                return;
+            }
+
             messageBox.TellReceived -= MessageBox_TellReceived;
             messageBox.QuestionReceived -= MessageBox_QuestionReceived;
 

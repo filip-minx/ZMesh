@@ -47,9 +47,14 @@ if (GetAs("ask", false))
             content = File.ReadAllText(contentFile);
         }
 
+        if (!TryGetAs("timeout", out int timeout))
+        {
+            timeout = int.MaxValue;
+        }
+
         content = content ?? "{}";
 
-        var result = await box.Ask(contentType, content);
+        var result = await box.Ask(contentType, content, TimeSpan.FromMilliseconds(timeout));
 
         Console.WriteLine(result);
     }

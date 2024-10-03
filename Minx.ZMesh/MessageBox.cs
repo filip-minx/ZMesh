@@ -5,6 +5,7 @@ using NetMQ.Sockets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Minx.ZMesh
@@ -24,7 +25,7 @@ namespace Minx.ZMesh
         private readonly ConcurrentDictionary<string, ConcurrentQueue<PendingQuestion>> _pendingQuestions = new ConcurrentDictionary<string, ConcurrentQueue<PendingQuestion>>();
 
         // <CorrelationId, PendingAnswer>
-        private readonly ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>> _pendingAnswers = new ConcurrentDictionary<string, ConcurrentQueue<IPendingAnswer>>();
+        private readonly ConcurrentDictionary<string, IPendingAnswer> _pendingAnswers = new ConcurrentDictionary<string, IPendingAnswer>();
 
         public event EventHandler<MessageReceivedEventArgs> TellReceived;
         public event EventHandler<MessageReceivedEventArgs> QuestionReceived;
@@ -86,11 +87,146 @@ namespace Minx.ZMesh
 
         internal void WriteAnswerMessage(AnswerMessage message)
         {
-            if (_pendingAnswers.TryGetValue(message.CorrelationId, out var answerQueue))
+            if (_pendingAnswers.TryRemove(message.CorrelationId, out var pendingAnswer))
             {
-                if (answerQueue.TryDequeue(out var pendingAnswer))
+                pendingAnswer.SetAnswer(message.Content);
+            }
+        }
+
+        public async Task<string> Ask(string contentType)
+        {
+            return await InternalAsk(contentType, "{}", CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+
+        public async Task<string> Ask(string contentType, CancellationToken cancellationToken)
+        {
+            return await InternalAsk(contentType, "{}", cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        public async Task<string> Ask(string contentType, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource(timeout))
+            {
+                return await InternalAsk(contentType, "{}", cts.Token)
+                    .ConfigureAwait(false);
+            }
+        }
+
+        public async Task<string> Ask(string contentType, string content)
+        {
+            return await InternalAsk(contentType, content, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+
+        public async Task<string> Ask(string contentType, string content, CancellationToken cancellationToken)
+        {
+            return await InternalAsk(contentType, content, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        public async Task<string> Ask(string contentType, string content, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource(timeout))
+            {
+                return await InternalAsk(contentType, content, cts.Token)
+                    .ConfigureAwait(false);
+            }
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question)
+        {
+            var answerContent = await InternalAsk(typeof(TQuestion).Name, JsonConvert.SerializeObject(question), CancellationToken.None)
+                .ConfigureAwait(false);
+
+            return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question, CancellationToken cancellationToken)
+        {
+            var answerContent = await InternalAsk(typeof(TQuestion).Name, JsonConvert.SerializeObject(question), cancellationToken)
+                .ConfigureAwait(false);
+
+            return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question, TimeSpan timeout)
+        {
+            using (var cts = new CancellationTokenSource(timeout))
+            {
+                var answerContent = await InternalAsk(typeof(TQuestion).Name, JsonConvert.SerializeObject(question), cts.Token)
+                    .ConfigureAwait(false);
+
+                return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+            }
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>() where TQuestion : new()
+        {
+            var answerContent = await InternalAsk(typeof(TQuestion).Name, "{}", CancellationToken.None)
+                .ConfigureAwait(false);
+
+            return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>(CancellationToken cancellationToken) where TQuestion : new()
+        {
+            var answerContent = await InternalAsk(typeof(TQuestion).Name, "{}", cancellationToken)
+                .ConfigureAwait(false);
+
+            return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+        }
+
+        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TimeSpan timeout) where TQuestion : new()
+        {
+            using (var cts = new CancellationTokenSource(timeout))
+            {
+                var answerContent = await InternalAsk(typeof(TQuestion).Name, "{}", cts.Token)
+                    .ConfigureAwait(false);
+
+                return JsonConvert.DeserializeObject<TAnswer>(answerContent);
+            }
+        }
+
+        private async Task<string> InternalAsk(string contentType, string content, CancellationToken cancellationToken)
+        {
+            var correlationId = Guid.NewGuid().ToString();
+
+            var questionMessage = new QuestionMessage
+            {
+                ContentType = contentType,
+                Content = content,
+                MessageBoxName = _name,
+                CorrelationId = correlationId
+            };
+
+            var tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var pendingAnswer = new PendingAnswer
+            {
+                CorrelationId = correlationId,
+                TaskCompletionSource = tcs
+            };
+
+            _pendingAnswers[correlationId] = pendingAnswer;
+
+            _messageQueue.Enqueue(questionMessage);
+
+            using (cancellationToken.Register(() =>
+            {
+                _pendingAnswers.TryRemove(correlationId, out _);
+
+                tcs.TrySetCanceled(cancellationToken);
+            }))
+            {
+                try
                 {
-                    pendingAnswer.SetAnswer(message.Content);
+                    return await tcs.Task.ConfigureAwait(false);
+                }
+                catch (TaskCanceledException)
+                {
+                    throw new OperationCanceledException("The operation was canceled.", cancellationToken);
                 }
             }
         }
@@ -228,62 +364,17 @@ namespace Minx.ZMesh
             Tell(typeof(TMessage).Name, JsonConvert.SerializeObject(message));
         }
 
-        public async Task<string> Ask(string contentType, string content)
-        {
-            var correlationId = Guid.NewGuid().ToString();
-
-            var questionMessage = new QuestionMessage
-            {
-                ContentType = contentType,
-                Content = content,
-                MessageBoxName = _name,
-                CorrelationId = correlationId
-            };
-
-            var tcs = new TaskCompletionSource<string>();
-
-            var pendingAnswer = new PendingAnswer
-            {
-                CorrelationId = correlationId,
-                TaskCompletionSource = tcs
-            };
-
-            _pendingAnswers.GetOrAdd(correlationId, _ => new ConcurrentQueue<IPendingAnswer>())
-                .Enqueue(pendingAnswer);
-
-            _messageQueue.Enqueue(questionMessage);
-
-            return await tcs.Task;
-        }
-
-        public async Task<string> Ask(string contentType)
-        {
-            return await Ask(contentType, "{}");
-        }
-
-        public async Task<TAnswer> Ask<TQuestion, TAnswer>(TQuestion question)
-        {
-            var answerContent = await Ask(typeof(TQuestion).Name, JsonConvert.SerializeObject(question));
-            return JsonConvert.DeserializeObject<TAnswer>(answerContent);
-        }
-
-        public async Task<TAnswer> Ask<TQuestion, TAnswer>() where TQuestion : new()
-        {
-            return await Ask<TQuestion, TAnswer>(new TQuestion());
-        }
-
         public void Dispose()
         {
             _poller?.Dispose();
             _dealerSocket?.Dispose();
 
-            foreach (var pendingAnswerQueue in _pendingAnswers.Values)
+            foreach (var pendingAnswer in _pendingAnswers.Values)
             {
-                while (pendingAnswerQueue.TryDequeue(out var pendingAnswer))
-                {
-                    pendingAnswer.Cancel();
-                }
+                pendingAnswer.Cancel();
             }
+
+            _pendingAnswers.Clear();
         }
     }
 }

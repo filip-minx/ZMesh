@@ -11,12 +11,12 @@ namespace Minx.ZMesh
 
         public void SetAnswer(string answer)
         {
-            TaskCompletionSource.SetResult(answer);
+            TaskCompletionSource.TrySetResult(answer);
         }
 
         public void Cancel()
         {
-            TaskCompletionSource.SetCanceled();
+            TaskCompletionSource.TrySetCanceled();
         }
     }
 }

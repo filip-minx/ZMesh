@@ -20,20 +20,21 @@ namespace Minx.ZMesh
 
         public ZMesh(string address, Dictionary<string, string> systemMap)
         {
+            _systemMap = systemMap;
+
             if (address != null)
             {
                 _routerSocket = new RouterSocket();
                 _routerSocket.Bind("tcp://" + address);
 
                 _poller = new NetMQPoller { _routerSocket, _answerQueue };
-                _poller.RunAsync();
 
                 _routerSocket.ReceiveReady += HandleMessage;
 
                 _answerQueue.ReceiveReady += DequeueAndSendAnswer;
-            }
 
-            _systemMap = systemMap;
+                _poller.RunAsync();
+            }
         }
 
         public IMessageBox At(string name)

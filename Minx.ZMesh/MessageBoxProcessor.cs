@@ -8,7 +8,7 @@ namespace Minx.ZMesh
 {
     public class MessageBoxProcessor : IMessageBoxProcessor, IDisposable
     {
-        private readonly IMessageBox messageBox;
+        private readonly ITypedMessageBox messageBox;
         private readonly MessageProcessingOptions options;
         private readonly Dictionary<string, Action<object>> tellHandlers = new Dictionary<string, Action<object>>();
         private readonly Dictionary<string, Func<object, object>> questionHandlers = new Dictionary<string, Func<object, object>>();
@@ -16,7 +16,7 @@ namespace Minx.ZMesh
 
         private bool isDisposed;
 
-        public MessageBoxProcessor(IMessageBox messageBox, MessageProcessingOptions options = null)
+        public MessageBoxProcessor(ITypedMessageBox messageBox, MessageProcessingOptions options = null)
         {
             this.messageBox = messageBox;
             this.options = options ?? new MessageProcessingOptions();
@@ -83,7 +83,7 @@ namespace Minx.ZMesh
             {
                 try
                 {
-                    messageBox.TryAnswer(contentType, handler);
+                    messageBox.TryAnswerGeneric(contentType, handler);
                 }
                 catch (Exception ex)
                 {
@@ -107,7 +107,7 @@ namespace Minx.ZMesh
             {
                 try
                 {
-                    messageBox.TryListen(contentType, handler);
+                    messageBox.TryListenGeneric(contentType, handler);
                 }
                 catch (Exception ex)
                 {

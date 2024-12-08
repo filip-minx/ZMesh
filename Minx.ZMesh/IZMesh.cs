@@ -2,6 +2,6 @@
 {
     public interface IZMesh
     {
-        IMessageBox At(string name);
+        ITypedMessageBox At(string name);
     }
 }

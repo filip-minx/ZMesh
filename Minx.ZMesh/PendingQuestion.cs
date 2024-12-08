@@ -20,7 +20,7 @@ namespace Minx.ZMesh
             this.messageBoxName = messageBoxName;
         }
 
-        public void Answer(object answer)
+        public void Answer(Answer answer)
         {
             var questionMessage = JsonConvert.DeserializeObject(QuestionMessage.Content, TypeResolver.GetTypeInAllAssemblies(QuestionMessage.ContentType));
 
@@ -31,8 +31,8 @@ namespace Minx.ZMesh
 
             var answerMessage = new AnswerMessage
             {
-                ContentType = answer.GetType().Name,
-                Content = answerContentJson,
+                ContentType = answer.ContentType,
+                Content = answer.Content,
                 MessageBoxName = messageBoxName,
                 CorrelationId = QuestionMessage.CorrelationId
             };

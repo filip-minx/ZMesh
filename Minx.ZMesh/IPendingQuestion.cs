@@ -8,6 +8,6 @@ namespace Minx.ZMesh
 
         QuestionMessage QuestionMessage { get; set; }
 
-        void Answer(object answer);
+        void Answer(Answer answer);
     }
 }

@@ -1,21 +1,23 @@
 ﻿using Minx.ZMesh.Models;
+using Minx.ZMesh.Serialization;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 
 namespace Minx.ZMesh
 {
     public class ZMesh : IZMesh, IDisposable
     {
+        public ISerializer Serializer { get; set; } = new JsonSerializer();
+
         private readonly Dictionary<string, string> _systemMap;
         private RouterSocket _routerSocket;
         private NetMQPoller _poller;
 
-        private ConcurrentDictionary<string, MessageBox> _messageBoxes = new ConcurrentDictionary<string, MessageBox>();
+        private ConcurrentDictionary<string, TypedMessageBox> _messageBoxes = new ConcurrentDictionary<string, TypedMessageBox>();
         private NetMQQueue<IdentityMessage<AnswerMessage>> _answerQueue = new NetMQQueue<IdentityMessage<AnswerMessage>>();
 
         public ZMesh(string address, Dictionary<string, string> systemMap)
@@ -36,10 +38,10 @@ namespace Minx.ZMesh
             _systemMap = systemMap;
         }
 
-        public IMessageBox At(string name)
+        public ITypedMessageBox At(string name)
         {
             return _messageBoxes.GetOrAdd(name,
-                _ => new MessageBox(name, _systemMap[name]));
+                _ => new TypedMessageBox(name, _systemMap[name], Serializer));
         }
 
         private void DequeueAndSendAnswer(object sender, NetMQQueueEventArgs<IdentityMessage<AnswerMessage>> e)
@@ -63,7 +65,7 @@ namespace Minx.ZMesh
 
             Message message = DeserializeMessage(messageType, messageJson);
 
-            var messageBox = (MessageBox)At(message.MessageBoxName);
+            var messageBox = (TypedMessageBox)At(message.MessageBoxName);
 
             switch (messageType)
             {

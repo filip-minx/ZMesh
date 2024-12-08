@@ -4,7 +4,7 @@
     {
         string CorrelationId { get; }
 
-        void SetAnswer(string answer);
+        void SetAnswer(Answer answer);
 
         void Cancel();
     }

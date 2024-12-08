@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using JsonSerializer = Minx.ZMesh.Serialization.JsonSerializer;
 
 namespace Minx.ZMesh
 {

@@ -31,6 +31,8 @@ if (TryGetAs("listen", out string messageBoxNames))
                     lock (listenLock)
                     {
                         var currentColor = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.Write(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " ");
                         Console.ForegroundColor = ConsoleColor.Green;
                         Console.Write(messageBoxName);
                         Console.ForegroundColor = currentColor;

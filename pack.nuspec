@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>Minx.ZMesh</id>
+    <version>1.0.1</version>
+    <authors>Filip Minx</authors>
+    <owners>Filip Minx</owners>
+    <licenseUrl>https://github.com/filip-minx/ZMesh/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/filip-minx/ZMesh</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>
+      Combines Minx.ZMesh and Minx.ZMesh.Probe into a single NuGet package,
+      targeting both .NET 8.0 and .NET Framework 4.8.
+    </description>
+    <tags>Minx.ZMesh Minx.ZMesh.Probe</tags>
+  </metadata>
+
+  <files>
+    <!-- .NET 8.0 -->
+    <file src="Minx.ZMesh\bin\Release\net8.0\Minx.ZMesh.dll"
+          target="lib\net8.0\" />
+
+    <!-- .NET Framework 4.8 -->
+    <file src="Minx.ZMesh\bin\Release\net48\Minx.ZMesh.dll"
+          target="lib\net48\" />
+
+    <!-- Probe -->
+    <file src="Minx.ZMesh.Probe\bin\Release\net8.0\Minx.ZMesh.Probe.exe"
+          target="lib\net8.0\" />
+  </files>
+</package>

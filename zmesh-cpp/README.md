@@ -16,6 +16,22 @@ low-level message boxes as well as a typed wrapper that integrates with modern C
 
 ## Building
 
+From the `zmesh-cpp` directory you can invoke the helper script:
+
+```bash
+./build.sh
+```
+
+The helper script configures CMake in `zmesh-cpp/build` and performs a build in
+one step. Pass `--examples` to enable the optional calculator example or any
+extra flags directly to CMake after `--`:
+
+```bash
+./build.sh --examples -- -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+```
+
+To run the same steps manually:
+
 ```bash
 cmake -S zmesh-cpp -B build
 cmake --build build

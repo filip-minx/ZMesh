@@ -18,8 +18,8 @@ low-level message boxes as well as a typed wrapper that integrates with modern C
 
 The repository includes a Visual Studio 2022 solution file: [`ZMeshCpp.sln`](./ZMeshCpp.sln). The projects assume the following third-party dependencies are available:
 
-* [ZeroMQ](https://zeromq.org/) development headers and libraries.
-* [`cppzmq`](https://github.com/zeromq/cppzmq) headers (`zmq.hpp`).
+* [ZeroMQ](https://zeromq.org/) development headers and libraries (the bundled projects expect the official `zmq.h` header and a `libzmq.lib` import library).
+* [`cppzmq`](https://github.com/zeromq/cppzmq) headers (`zmq.hpp`). A lightweight, header-only compatibility shim that covers the parts of the API used by ZMesh ships under `deps/zeromq/include`. Replace it with the upstream header if you depend on broader `cppzmq` surface area.
 * [`nlohmann_json`](https://github.com/nlohmann/json) headers. A minimal, header-only compatibility shim is bundled under `deps/nlohmann_json`, so the projects build out of the box. You can replace it with the official single-header release if you rely on additional JSON features.
 
 By default the projects expect these dependencies to live under `zmesh-cpp/deps` with the structure below:

@@ -53,3 +53,21 @@ int main()
 
 See the header files in `include/zmesh` for the complete API surface.
 
+## Examples
+
+The `examples` folder contains a minimal calculator client that connects to an
+existing ZMesh router and demonstrates sending a typed `ask` request. Enable
+the build flag when configuring CMake to compile the executable:
+
+```bash
+cmake -S zmesh-cpp -B build -DZMESH_BUILD_EXAMPLES=ON
+cmake --build build --target zmesh_example_calculator
+```
+
+Run the resulting binary after starting a calculator service that listens on
+`tcp://localhost:6000` and understands the `AddRequest`/`AddResponse` contract:
+
+```bash
+./build/examples/zmesh_example_calculator
+```
+

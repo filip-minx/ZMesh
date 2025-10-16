@@ -43,6 +43,12 @@ else()
     message(FATAL_ERROR "Unable to determine ZeroMQ library target")
 endif()
 
+option(ZMESH_BUILD_EXAMPLES "Build zmesh-cpp usage examples" ON)
+
+if (ZMESH_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
 install(TARGETS zmesh EXPORT zmeshTargets)
 install(DIRECTORY include/ DESTINATION include)
 

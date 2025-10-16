@@ -43,8 +43,7 @@
     <Import Project="$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
-    <ZeroMQIncludeDir>$(ProjectDir)..\\deps\\zeromq\\include</ZeroMQIncludeDir>
-    <ZeroMQLibraryDir>$(ProjectDir)..\\deps\\zeromq\\lib</ZeroMQLibraryDir>
+    <ZeroMQIncludeDir>$(ProjectDir)..\\deps\\zeromq\\include;$(ProjectDir)..\\deps\\zeromq\\libzmq\\include</ZeroMQIncludeDir>
     <NlohmannJsonIncludeDir>$(ProjectDir)..\\deps\\nlohmann_json\\include</NlohmannJsonIncludeDir>
   </PropertyGroup>
   <PropertyGroup>
@@ -61,8 +60,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\\include;$(ZeroMQIncludeDir);$(NlohmannJsonIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ZeroMQLibraryDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libzmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Advapi32.lib;Ws2_32.lib;Rpcrt4.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -77,8 +75,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir)..\\include;$(ZeroMQIncludeDir);$(NlohmannJsonIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(ZeroMQLibraryDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libzmq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Advapi32.lib;Ws2_32.lib;Rpcrt4.lib;Iphlpapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

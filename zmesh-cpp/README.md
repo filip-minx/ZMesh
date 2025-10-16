@@ -8,7 +8,7 @@ low-level message boxes as well as a typed wrapper that integrates with modern C
 * Connects to existing ZMesh message boxes using ZeroMQ `ROUTER`/`DEALER` sockets.
 * Supports `tell`, `ask`, and `try_answer` workflows with automatic retry logic and answer caching.
 * Provides a `TypedMessageBox` helper that works with arbitrary serializers. A ready-to-use `JsonSerializer` based on `nlohmann::json` is included.
-* Ships with a CMake build that produces a static library.
+* Ships with a Visual Studio solution that produces a static library and optional examples.
 
 > **Type names and interoperability**
 >
@@ -16,38 +16,31 @@ low-level message boxes as well as a typed wrapper that integrates with modern C
 
 ## Building
 
-From the `zmesh-cpp` directory you can invoke the helper script:
-
-```bash
-./build.sh
-```
-
-The helper script configures CMake in `zmesh-cpp/build` and performs a build in
-one step. Pass `--examples` to enable the optional calculator example or any
-extra flags directly to CMake after `--`:
-
-```bash
-./build.sh --examples -- -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-```
-
-To run the same steps manually:
-
-```bash
-cmake -S zmesh-cpp -B build
-cmake --build build
-```
-
-The build requires the following dependencies:
+The repository includes a Visual Studio 2022 solution file: [`ZMeshCpp.sln`](./ZMeshCpp.sln). The projects assume the following third-party dependencies are available:
 
 * [ZeroMQ](https://zeromq.org/) development headers and libraries.
 * [`cppzmq`](https://github.com/zeromq/cppzmq) headers (`zmq.hpp`).
 * [`nlohmann_json`](https://github.com/nlohmann/json) version 3.2.0 or later.
 
-If CMake cannot automatically locate `zmq.hpp`, set `CPPZMQ_INCLUDE_DIR` to the folder that contains the header:
+By default the projects expect these dependencies to live under `zmesh-cpp/deps` with the structure below:
 
-```bash
-cmake -S zmesh-cpp -B build -DCPPZMQ_INCLUDE_DIR=/path/to/cppzmq
 ```
+zmesh-cpp/
+  deps/
+    zeromq/
+      include/zmq.hpp
+      lib/libzmq.lib
+    nlohmann_json/
+      include/nlohmann/json.hpp
+```
+
+If your environment uses a different layout, open the project properties, navigate to **Configuration Properties → VC++ Directories**, and update the `ZeroMQIncludeDir`, `ZeroMQLibraryDir`, and `NlohmannJsonIncludeDir` user macros. Visual Studio will then discover the correct headers and libraries.
+
+To build the static library and the calculator example:
+
+1. Open `ZMeshCpp.sln` in Visual Studio 2022.
+2. Choose the desired configuration (Debug or Release) and the x64 platform.
+3. Build either the `zmesh-cpp` static library project or the `calculator-example` application.
 
 ## Usage
 
@@ -71,19 +64,6 @@ See the header files in `include/zmesh` for the complete API surface.
 
 ## Examples
 
-The `examples` folder contains a minimal calculator client that connects to an
-existing ZMesh router and demonstrates sending a typed `ask` request. Enable
-the build flag when configuring CMake to compile the executable:
+The `examples` folder contains a minimal calculator client that connects to an existing ZMesh router and demonstrates sending a typed `ask` request. Build the `calculator-example` project inside Visual Studio after configuring the dependencies above.
 
-```bash
-cmake -S zmesh-cpp -B build -DZMESH_BUILD_EXAMPLES=ON
-cmake --build build --target zmesh_example_calculator
-```
-
-Run the resulting binary after starting a calculator service that listens on
-`tcp://localhost:6000` and understands the `AddRequest`/`AddResponse` contract:
-
-```bash
-./build/examples/zmesh_example_calculator
-```
-
+Run the resulting binary after starting a calculator service that listens on `tcp://localhost:6000` and understands the `AddRequest`/`AddResponse` contract.

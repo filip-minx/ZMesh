@@ -4,4 +4,4 @@
 ## Projects
 
 * `Minx.ZMesh` – the original .NET implementation published on NuGet.
-* `zmesh-cpp` – a modern C++ port that exposes the ZMesh protocol to native applications. Build instructions and a calculator example are available in [`zmesh-cpp/README.md`](zmesh-cpp/README.md).
+* `zmesh-cpp` – a modern C++ port that exposes the ZMesh protocol to native applications. A Visual Studio solution and calculator example are documented in [`zmesh-cpp/README.md`](zmesh-cpp/README.md).

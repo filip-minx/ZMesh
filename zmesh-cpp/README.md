@@ -20,7 +20,7 @@ The repository includes a Visual Studio 2022 solution file: [`ZMeshCpp.sln`](./Z
 
 * [ZeroMQ](https://zeromq.org/) development headers and libraries.
 * [`cppzmq`](https://github.com/zeromq/cppzmq) headers (`zmq.hpp`).
-* [`nlohmann_json`](https://github.com/nlohmann/json) version 3.2.0 or later.
+* [`nlohmann_json`](https://github.com/nlohmann/json) headers. A minimal, header-only compatibility shim is bundled under `deps/nlohmann_json`, so the projects build out of the box. You can replace it with the official single-header release if you rely on additional JSON features.
 
 By default the projects expect these dependencies to live under `zmesh-cpp/deps` with the structure below:
 

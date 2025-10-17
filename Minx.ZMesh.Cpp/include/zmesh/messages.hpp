@@ -1,14 +1,11 @@
 #pragma once
 
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+
+#include <nlohmann/json.hpp>
 
 namespace zmesh {
 
@@ -82,131 +79,79 @@ struct IdentityMessage {
     std::string dealer_identity;
 };
 
-namespace detail {
-
-inline constexpr std::size_t LENGTH_SIZE = sizeof(std::uint32_t);
-
-inline void write_string(std::string& buffer, std::string_view value) {
-    if (value.size() > static_cast<std::size_t>(std::numeric_limits<std::uint32_t>::max())) {
-        throw std::length_error("value too large to serialize");
-    }
-
-    const auto length = static_cast<std::uint32_t>(value.size());
-    std::array<char, LENGTH_SIZE> length_bytes{};
-    std::memcpy(length_bytes.data(), &length, LENGTH_SIZE);
-    buffer.append(length_bytes.data(), length_bytes.size());
-    buffer.append(value.begin(), value.end());
+inline nlohmann::json serialize_message_base(const Message& message) {
+    nlohmann::json json;
+    json["messageType"] = std::string{to_string(message.message_type)};
+    json["contentType"] = message.content_type;
+    json["content"] = message.content;
+    json["messageBoxName"] = message.message_box_name;
+    return json;
 }
 
-inline std::string read_string(std::string_view& data) {
-    if (data.size() < LENGTH_SIZE) {
-        throw std::runtime_error("invalid serialized message: missing string length");
-    }
-
-    std::uint32_t length{};
-    std::memcpy(&length, data.data(), LENGTH_SIZE);
-    data.remove_prefix(LENGTH_SIZE);
-
-    if (data.size() < length) {
-        throw std::runtime_error("invalid serialized message: truncated string");
-    }
-
-    std::string value{data.substr(0, length)};
-    data.remove_prefix(length);
-    return value;
+inline void deserialize_message_base(const nlohmann::json& json, Message& message) {
+    const auto type = json.at("messageType").get<std::string>();
+    message.message_type = message_type_from_string(type);
+    message.content_type = json.at("contentType").get<std::string>();
+    message.content = json.at("content").get<std::string>();
+    message.message_box_name = json.at("messageBoxName").get<std::string>();
 }
-
-inline void write_message_base(std::string& buffer, const Message& message) {
-    write_string(buffer, message.content_type);
-    write_string(buffer, message.content);
-    write_string(buffer, message.message_box_name);
-}
-
-inline void read_message_base(std::string_view& data, Message& message) {
-    message.content_type = read_string(data);
-    message.content = read_string(data);
-    message.message_box_name = read_string(data);
-}
-
-inline void write_optional_string(std::string& buffer, const std::optional<std::string>& value) {
-    const char flag = value.has_value() ? 1 : 0;
-    buffer.push_back(flag);
-    if (value) {
-        write_string(buffer, *value);
-    }
-}
-
-inline std::optional<std::string> read_optional_string(std::string_view& data) {
-    if (data.empty()) {
-        throw std::runtime_error("invalid serialized message: missing optional flag");
-    }
-
-    const auto flag = data.front();
-    data.remove_prefix(1);
-
-    if (flag == 0) {
-        return std::nullopt;
-    }
-
-    if (flag != 1) {
-        throw std::runtime_error("invalid serialized message: bad optional flag");
-    }
-
-    return read_string(data);
-}
-
-} // namespace detail
 
 inline std::string serialize_tell_message(const TellMessage& message) {
-    std::string buffer;
-    detail::write_message_base(buffer, message);
-    return buffer;
+    auto json = serialize_message_base(message);
+    return json.dump();
 }
 
 inline TellMessage deserialize_tell_message(std::string_view data) {
+    auto json = nlohmann::json::parse(data);
     TellMessage message;
-    detail::read_message_base(data, message);
-    if (!data.empty()) {
-        throw std::runtime_error("invalid serialized tell message");
+    deserialize_message_base(json, message);
+    if (message.message_type != MessageType::Tell) {
+        throw std::runtime_error("invalid serialized tell message: wrong type");
     }
     return message;
 }
 
 inline std::string serialize_question_message(const QuestionMessage& message) {
-    std::string buffer;
-    detail::write_message_base(buffer, message);
-    detail::write_string(buffer, message.correlation_id);
-    detail::write_optional_string(buffer, message.answer_content_type);
-    return buffer;
+    auto json = serialize_message_base(message);
+    json["correlationId"] = message.correlation_id;
+    if (message.answer_content_type) {
+        json["answerContentType"] = *message.answer_content_type;
+    } else {
+        json["answerContentType"] = nullptr;
+    }
+    return json.dump();
 }
 
 inline QuestionMessage deserialize_question_message(std::string_view data) {
+    auto json = nlohmann::json::parse(data);
     QuestionMessage message;
-    detail::read_message_base(data, message);
-    message.correlation_id = detail::read_string(data);
-    message.answer_content_type = detail::read_optional_string(data);
-    if (!data.empty()) {
-        throw std::runtime_error("invalid serialized question message");
+    deserialize_message_base(json, message);
+    if (message.message_type != MessageType::Question) {
+        throw std::runtime_error("invalid serialized question message: wrong type");
     }
-    message.message_type = MessageType::Question;
+    message.correlation_id = json.at("correlationId").get<std::string>();
+    if (json.contains("answerContentType") && !json.at("answerContentType").is_null()) {
+        message.answer_content_type = json.at("answerContentType").get<std::string>();
+    } else {
+        message.answer_content_type = std::nullopt;
+    }
     return message;
 }
 
 inline std::string serialize_answer_message(const AnswerMessage& message) {
-    std::string buffer;
-    detail::write_message_base(buffer, message);
-    detail::write_string(buffer, message.correlation_id);
-    return buffer;
+    auto json = serialize_message_base(message);
+    json["correlationId"] = message.correlation_id;
+    return json.dump();
 }
 
 inline AnswerMessage deserialize_answer_message(std::string_view data) {
+    auto json = nlohmann::json::parse(data);
     AnswerMessage message;
-    detail::read_message_base(data, message);
-    message.correlation_id = detail::read_string(data);
-    if (!data.empty()) {
-        throw std::runtime_error("invalid serialized answer message");
+    deserialize_message_base(json, message);
+    if (message.message_type != MessageType::Answer) {
+        throw std::runtime_error("invalid serialized answer message: wrong type");
     }
-    message.message_type = MessageType::Answer;
+    message.correlation_id = json.at("correlationId").get<std::string>();
     return message;
 }
 

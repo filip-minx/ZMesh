@@ -12,7 +12,7 @@ topology.
 
 The `Minx.ZMesh.Cpp` project is a standards-conforming static library that
 targets the latest C++ language level and uses [ZeroMQ](https://zeromq.org/)
-with a lightweight binary framing layer for message transport.
+with JSON-encoded message envelopes for transport.
 
 ### Building with Visual Studio
 
@@ -44,10 +44,10 @@ with a lightweight binary framing layer for message transport.
 ### Usage
 
 The preferred entry point for native integrations is the message box workflow
-that mirrors the .NET implementation. Payloads are plain strings, so
-applications can encode data however they choose. The snippet below
-demonstrates issuing a request through the `zmesh::ZMesh` router and handling
-the string answer:
+that mirrors the .NET implementation. Payloads are plain strings, while the
+library handles JSON serialization of the message envelopes exchanged with the
+router. The snippet below demonstrates issuing a request through the
+`zmesh::ZMesh` router and handling the string answer:
 
 ```cpp
 #include <zmesh/request_options.hpp>
@@ -79,9 +79,8 @@ int main() {
 }
 ```
 
-`zmesh::MessageBox` serialises messages with an internal binary framing format,
-manages retries, and raises the same events available in the managed
-implementation.
+`zmesh::MessageBox` serialises message envelopes as JSON, manages retries, and
+raises the same events available in the managed implementation.
 
 #### Hosting message boxes
 

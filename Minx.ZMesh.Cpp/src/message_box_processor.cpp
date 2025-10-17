@@ -4,7 +4,7 @@
 
 namespace zmesh {
 
-MessageBoxProcessor::MessageBoxProcessor(std::shared_ptr<TypedMessageBox> message_box,
+MessageBoxProcessor::MessageBoxProcessor(std::shared_ptr<MessageBox> message_box,
                                          MessageProcessingOptions options)
     : message_box_{std::move(message_box)}, options_{std::move(options)} {
     tell_subscription_token_ = message_box_->add_tell_received_handler(
@@ -128,6 +128,20 @@ void MessageBoxProcessor::handle_exception(const std::exception& ex) {
     } else {
         throw;
     }
+}
+
+void MessageBoxProcessor::listen(const std::string& content_type,
+                                 const std::function<void(const std::string&)>& handler) {
+    tell_handlers_[content_type] = [content_type, handler](MessageBox& box) {
+        box.try_listen(content_type, handler);
+    };
+}
+
+void MessageBoxProcessor::answer(const std::string& question_content_type,
+                                 const std::function<Answer(const std::string&)>& handler) {
+    question_handlers_[question_content_type] = [question_content_type, handler](MessageBox& box) {
+        box.try_answer(question_content_type, handler);
+    };
 }
 
 } // namespace zmesh

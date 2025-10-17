@@ -19,7 +19,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include <nlohmann/json.hpp>
 #include <zmq.hpp>
 
 #include "messages.hpp"
@@ -99,7 +98,7 @@ private:
 
     struct OutgoingMessage {
         MessageType type;
-        nlohmann::json payload;
+        std::string payload;
     };
 
     struct CachedAnswer {
@@ -110,7 +109,7 @@ private:
     void worker_loop(std::stop_token stop_token);
     void send_message(zmq::socket_t& socket, const OutgoingMessage& message);
     void handle_answer(const AnswerMessage& answer);
-    void enqueue_outgoing(MessageType type, nlohmann::json payload);
+    void enqueue_outgoing(MessageType type, std::string payload);
     void prune_expired_cache();
     std::optional<Answer> get_cached_answer(const std::string& correlation_id);
     void cache_answer(const std::string& correlation_id, const Answer& answer);

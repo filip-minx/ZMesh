@@ -1,5 +1,6 @@
 #include "zmesh/message_box.hpp"
 
+#include <cstring>
 #include <stdexcept>
 #include <string_view>
 
@@ -59,11 +60,11 @@ Answer MessageBox::ask(const std::string& content_type,
 
     QuestionMessage question;
     question.content_type = content_type;
-    question.content = content.value_or("{}");
+    question.content = content.value_or(std::string{});
     question.message_box_name = name_;
     question.correlation_id = uuid::generate();
 
-    auto question_json = nlohmann::json(question);
+    const auto question_payload = serialize_question_message(question);
 
     auto promise = std::make_shared<std::promise<Answer>>();
     auto future = promise->get_future();
@@ -74,7 +75,7 @@ Answer MessageBox::ask(const std::string& content_type,
     }
 
     for (int attempt = 0; attempt < options.max_retries; ++attempt) {
-        enqueue_outgoing(MessageType::Question, question_json);
+        enqueue_outgoing(MessageType::Question, question_payload);
 
         if (future.wait_for(options.timeout) == std::future_status::ready) {
             return future.get();
@@ -113,7 +114,7 @@ void MessageBox::tell(const std::string& content_type, const std::string& conten
     message.content = content;
     message.message_box_name = name_;
 
-    enqueue_outgoing(MessageType::Tell, nlohmann::json(message));
+    enqueue_outgoing(MessageType::Tell, serialize_tell_message(message));
 }
 
 bool MessageBox::try_listen(const std::string& content_type,
@@ -247,19 +248,21 @@ void MessageBox::worker_loop(std::stop_token stop_token) {
             }
 
             const auto payload = std::string_view(static_cast<const char*>(payload_frame.data()), payload_frame.size());
-            auto json = nlohmann::json::parse(payload);
-            auto answer = json.get<AnswerMessage>();
+            auto answer = deserialize_answer_message(payload);
             handle_answer(answer);
         }
     }
 }
 
 void MessageBox::send_message(zmq::socket_t& socket, const OutgoingMessage& message) {
-    const auto payload = message.payload.dump();
+    const auto& payload = message.payload;
     const auto type_string = std::string{to_string(message.type)};
 
     zmq::message_t type_frame{type_string.begin(), type_string.end()};
-    zmq::message_t payload_frame{payload.begin(), payload.end()};
+    zmq::message_t payload_frame{payload.size()};
+    if (!payload.empty()) {
+        std::memcpy(payload_frame.data(), payload.data(), payload.size());
+    }
 
     const auto type_sent = socket.send(type_frame, zmq::send_flags::sndmore);
     if (!type_sent) {
@@ -289,7 +292,7 @@ void MessageBox::handle_answer(const AnswerMessage& answer) {
     }
 }
 
-void MessageBox::enqueue_outgoing(MessageType type, nlohmann::json payload) {
+void MessageBox::enqueue_outgoing(MessageType type, std::string payload) {
     {
         std::lock_guard lock(outgoing_mutex_);
         outgoing_messages_.push_back(OutgoingMessage{type, std::move(payload)});

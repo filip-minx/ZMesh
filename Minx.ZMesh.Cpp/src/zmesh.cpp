@@ -1,9 +1,9 @@
 #include "zmesh/zmesh.hpp"
 
 #include <chrono>
+#include <cstring>
 #include <stdexcept>
-
-#include <nlohmann/json.hpp>
+#include <string_view>
 
 namespace zmesh {
 
@@ -21,13 +21,9 @@ ZMesh::~ZMesh() {
     }
 }
 
-std::shared_ptr<TypedMessageBox> ZMesh::at(const std::string& name) {
-    std::shared_ptr<TypedMessageBox> typed;
-    {
-        std::lock_guard lock(message_boxes_mutex_);
-        typed = ensure_entry(name).typed_box;
-    }
-    return typed;
+std::shared_ptr<MessageBox> ZMesh::at(const std::string& name) {
+    std::lock_guard lock(message_boxes_mutex_);
+    return ensure_message_box(name);
 }
 
 void ZMesh::router_loop(std::stop_token stop_token) {
@@ -61,26 +57,25 @@ void ZMesh::router_loop(std::stop_token stop_token) {
             const auto identity_str = identity.to_string();
             const auto type_str = type_frame.to_string();
             const auto message_type = message_type_from_string(type_str);
-            const auto payload_str = payload.to_string();
-            auto json = nlohmann::json::parse(payload_str);
+            const auto payload_view = std::string_view(static_cast<const char*>(payload.data()), payload.size());
 
             switch (message_type) {
             case MessageType::Tell: {
-                auto tell = json.get<TellMessage>();
+                auto tell = deserialize_tell_message(payload_view);
                 std::shared_ptr<MessageBox> box;
                 {
                     std::lock_guard lock(message_boxes_mutex_);
-                    box = ensure_entry(tell.message_box_name).message_box;
+                    box = ensure_message_box(tell.message_box_name);
                 }
                 box->write_tell_message(tell);
                 break;
             }
             case MessageType::Question: {
-                auto question = json.get<QuestionMessage>();
+                auto question = deserialize_question_message(payload_view);
                 std::shared_ptr<MessageBox> box;
                 {
                     std::lock_guard lock(message_boxes_mutex_);
-                    box = ensure_entry(question.message_box_name).message_box;
+                    box = ensure_message_box(question.message_box_name);
                 }
                 box->write_question_message(question, identity_str);
                 break;
@@ -96,23 +91,17 @@ void ZMesh::router_loop(std::stop_token stop_token) {
     flush_answers(router);
 }
 
-ZMesh::MessageBoxEntry& ZMesh::ensure_entry(const std::string& name) {
+std::shared_ptr<MessageBox> ZMesh::ensure_message_box(const std::string& name) {
     auto it = message_boxes_.find(name);
     if (it == message_boxes_.end()) {
         auto message_box = create_message_box(name);
-        auto typed = std::make_shared<TypedMessageBox>(message_box);
-        auto [inserted, inserted_success] =
-            message_boxes_.emplace(name, MessageBoxEntry{message_box, typed});
+        auto [inserted, inserted_success] = message_boxes_.emplace(name, std::move(message_box));
         (void)inserted_success;
         return inserted->second;
     }
 
-    if (!it->second.message_box) {
-        it->second.message_box = create_message_box(name);
-    }
-
-    if (!it->second.typed_box) {
-        it->second.typed_box = std::make_shared<TypedMessageBox>(it->second.message_box);
+    if (!it->second) {
+        it->second = create_message_box(name);
     }
 
     return it->second;
@@ -147,9 +136,12 @@ void ZMesh::flush_answers(zmq::socket_t& router_socket) {
         auto [identity, message] = std::move(answers.front());
         answers.pop();
 
-        auto json = nlohmann::json(message).dump();
+        const auto payload = serialize_answer_message(message);
         zmq::message_t identity_frame{identity.begin(), identity.end()};
-        zmq::message_t payload_frame{json.begin(), json.end()};
+        zmq::message_t payload_frame{payload.size()};
+        if (!payload.empty()) {
+            std::memcpy(payload_frame.data(), payload.data(), payload.size());
+        }
 
         const auto identity_sent = router_socket.send(identity_frame, zmq::send_flags::sndmore);
         if (!identity_sent) {

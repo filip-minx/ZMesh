@@ -4,28 +4,8 @@
 #include <string>
 #include <unordered_map>
 
-#include <nlohmann/json.hpp>
-
 #include <zmesh/request_options.hpp>
-#include <zmesh/typed_message_box.hpp>
 #include <zmesh/zmesh.hpp>
-
-namespace sample
-{
-
-struct OrderStatusRequest {
-    int OrderId;
-    std::string Action;
-};
-
-struct OrderStatusResponse {
-    std::string Status;
-};
-
-} // namespace sample
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(sample::OrderStatusRequest, OrderId, Action)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(sample::OrderStatusResponse, Status)
 
 namespace {
 
@@ -50,7 +30,7 @@ int main(int argc, char** argv) {
     try {
         std::unordered_map<std::string, std::string> system_map{{message_box, endpoint}};
         zmesh::ZMesh mesh{std::nullopt, std::move(system_map)};
-        auto typed_box = mesh.at(message_box);
+        auto box = mesh.at(message_box);
 
         const zmesh::RequestOptions options{
             std::chrono::milliseconds{1000},
@@ -58,9 +38,10 @@ int main(int argc, char** argv) {
         };
 
         std::cout << "Sending OrderStatus request via message box..." << std::endl;
-        const auto response = typed_box->ask<sample::OrderStatusRequest, sample::OrderStatusResponse>(
-            sample::OrderStatusRequest{.OrderId = 42, .Action = "Status"}, options);
-        std::cout << "Received answer with status " << response.Status << std::endl;
+        const std::string content_type = "sample.order-status";
+        const std::string payload = "OrderId=42;Action=Status";
+        const auto response = box->ask(content_type, payload, options);
+        std::cout << "Received answer of type " << response.content_type << ": " << response.content << std::endl;
     } catch (const std::exception& ex) {
         std::cerr << "Request failed: " << ex.what() << std::endl;
         std::cerr << "Ensure a ZMesh broker is reachable at the given endpoint." << std::endl;

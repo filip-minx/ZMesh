@@ -4,9 +4,6 @@
 #include <mutex>
 #include <optional>
 #include <string>
-#include <typeinfo>
-
-#include <nlohmann/json.hpp>
 #include <zmq.hpp>
 
 #include "messages.hpp"
@@ -31,28 +28,15 @@ public:
     [[nodiscard]] const std::string& identity() const noexcept { return identity_; }
 
     AnswerMessage ask(const std::string& content_type,
-                      const nlohmann::json& payload,
+                      const std::string& payload,
                       RequestOptions options = {});
 
-    template <typename Question, typename Answer>
-    Answer ask(const Question& question, RequestOptions options = {}) {
-        auto serialized_question = nlohmann::json(question);
-        auto response = ask(typeid(Question).name(), serialized_question, options);
-        auto json = nlohmann::json::parse(response.content);
-        return json.get<Answer>();
-    }
-
-    void tell(const std::string& content_type, const nlohmann::json& payload);
-
-    template <typename Message>
-    void tell(const Message& value) {
-        tell(typeid(Message).name(), nlohmann::json(value));
-    }
+    void tell(const std::string& content_type, const std::string& payload);
 
 private:
     void ensure_socket();
     void close_socket();
-    void send_message(MessageType type, const nlohmann::json& payload_json);
+    void send_message(MessageType type, const std::string& payload);
     std::optional<AnswerMessage> receive_answer(std::chrono::milliseconds timeout);
 
     zmq::context_t context_{1};

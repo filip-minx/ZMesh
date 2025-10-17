@@ -1,5 +1,6 @@
 #include "zmesh/zmesh_client.hpp"
 
+#include <cstring>
 #include <stdexcept>
 #include <string_view>
 #include <utility>
@@ -56,7 +57,7 @@ ZMeshClient& ZMeshClient::operator=(ZMeshClient&& other) noexcept {
 }
 
 AnswerMessage ZMeshClient::ask(const std::string& content_type,
-                               const nlohmann::json& payload,
+                               const std::string& payload,
                                RequestOptions options) {
     if (options.max_retries <= 0) {
         throw std::invalid_argument("max_retries must be greater than zero");
@@ -64,17 +65,17 @@ AnswerMessage ZMeshClient::ask(const std::string& content_type,
 
     QuestionMessage question;
     question.content_type = content_type;
-    question.content = payload.dump();
+    question.content = payload;
     question.message_box_name = message_box_name_;
     question.correlation_id = uuid::generate();
 
-    auto question_json = nlohmann::json(question);
+    const auto question_payload = serialize_question_message(question);
 
     std::scoped_lock lock(socket_mutex_);
     ensure_socket();
 
     for (int attempt = 0; attempt < options.max_retries; ++attempt) {
-        send_message(MessageType::Question, question_json);
+        send_message(MessageType::Question, question_payload);
 
         if (auto response = receive_answer(options.timeout)) {
             if (response->correlation_id != question.correlation_id) {
@@ -87,15 +88,15 @@ AnswerMessage ZMeshClient::ask(const std::string& content_type,
     throw std::runtime_error("ZMesh request timed out after " + std::to_string(options.max_retries) + " attempts");
 }
 
-void ZMeshClient::tell(const std::string& content_type, const nlohmann::json& payload) {
+void ZMeshClient::tell(const std::string& content_type, const std::string& payload) {
     TellMessage tell;
     tell.content_type = content_type;
-    tell.content = payload.dump();
+    tell.content = payload;
     tell.message_box_name = message_box_name_;
 
     std::scoped_lock lock(socket_mutex_);
     ensure_socket();
-    send_message(MessageType::Tell, nlohmann::json(tell));
+    send_message(MessageType::Tell, serialize_tell_message(tell));
 }
 
 void ZMeshClient::ensure_socket() {
@@ -119,12 +120,14 @@ void ZMeshClient::close_socket() {
     socket_.reset();
 }
 
-void ZMeshClient::send_message(MessageType type, const nlohmann::json& payload_json) {
-    const auto payload = payload_json.dump();
+void ZMeshClient::send_message(MessageType type, const std::string& payload) {
     const auto type_string = std::string{to_string(type)};
 
     zmq::message_t type_frame{type_string.begin(), type_string.end()};
-    zmq::message_t payload_frame{payload.begin(), payload.end()};
+    zmq::message_t payload_frame{payload.size()};
+    if (!payload.empty()) {
+        std::memcpy(payload_frame.data(), payload.data(), payload.size());
+    }
 
     const auto type_sent = socket_->send(type_frame, zmq::send_flags::sndmore);
     if (!type_sent) {
@@ -149,8 +152,7 @@ std::optional<AnswerMessage> ZMeshClient::receive_answer(std::chrono::millisecon
     }
 
     const auto payload = std::string_view(static_cast<const char*>(reply.data()), reply.size());
-    auto json = nlohmann::json::parse(payload.begin(), payload.end());
-    return json.get<AnswerMessage>();
+    return deserialize_answer_message(payload);
 }
 
 } // namespace zmesh

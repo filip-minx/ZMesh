@@ -31,8 +31,8 @@ public:
 
     template <typename Question, typename AnswerType>
     AnswerType ask(const Question& question, RequestOptions options = {}) {
-        auto serialized_question = nlohmann::json(question).dump();
-        auto answer = inner_->ask(typeid(Question).name(), serialized_question, options);
+        nlohmann::json question_json = question;
+        auto answer = inner_->ask(typeid(Question).name(), question_json.dump(), options);
         auto json = nlohmann::json::parse(answer.content);
         return json.get<AnswerType>();
     }
@@ -41,7 +41,8 @@ public:
 
     template <typename Message>
     void tell(const Message& message) {
-        inner_->tell(typeid(Message).name(), nlohmann::json(message).dump());
+        nlohmann::json message_json = message;
+        inner_->tell(typeid(Message).name(), message_json.dump());
     }
 
     bool try_answer(const std::string& question_content_type,
@@ -56,10 +57,10 @@ public:
             [handler](const std::string& content) {
                 auto json = nlohmann::json::parse(content);
                 auto question = json.template get<Question>();
-                auto answer = handler(question);
+                nlohmann::json answer_json = handler(question);
                 return Answer{
                     .content_type = typeid(AnswerType).name(),
-                    .content = nlohmann::json(answer).dump()};
+                    .content = answer_json.dump()};
             });
     }
 

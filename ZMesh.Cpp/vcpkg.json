@@ -1,0 +1,9 @@
+{
+  "name": "zmesh-cpp",
+  "version-string": "0.1.0",
+  "builtin-baseline": "071f676f662b8d36a2f1762c63516e60b99d375b",
+  "dependencies": [
+    "nlohmann-json",
+    "cppzmq"
+  ]
+}

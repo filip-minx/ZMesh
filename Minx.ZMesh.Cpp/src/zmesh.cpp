@@ -1,5 +1,6 @@
 #include "zmesh/zmesh.hpp"
 
+#include <chrono>
 #include <stdexcept>
 
 #include <nlohmann/json.hpp>
@@ -34,9 +35,11 @@ void ZMesh::router_loop(std::stop_token stop_token) {
     router.set(zmq::sockopt::linger, 0);
     router.bind("tcp://" + *address_);
 
+    constexpr auto ROUTER_POLL_INTERVAL = std::chrono::milliseconds(50);
+
     while (!stop_token.stop_requested()) {
         zmq::pollitem_t items[] = {{static_cast<void*>(router), 0, ZMQ_POLLIN, 0}};
-        [[maybe_unused]] const auto poll_result = zmq::poll(items, 1, 50);
+        [[maybe_unused]] const auto poll_result = zmq::poll(items, 1, ROUTER_POLL_INTERVAL);
 
         if (items[0].revents & ZMQ_POLLIN) {
             zmq::message_t identity;

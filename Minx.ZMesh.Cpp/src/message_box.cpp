@@ -238,8 +238,7 @@ void MessageBox::worker_loop(std::stop_token stop_token) {
         }
 
         zmq::pollitem_t items[] = {{static_cast<void*>(socket), 0, ZMQ_POLLIN, 0}};
-        [[maybe_unused]] const auto poll_result =
-            zmq::poll(items, 1, static_cast<long>(POLL_INTERVAL.count()));
+        [[maybe_unused]] const auto poll_result = zmq::poll(items, 1, POLL_INTERVAL);
 
         if (items[0].revents & ZMQ_POLLIN) {
             zmq::message_t payload_frame;

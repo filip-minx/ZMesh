@@ -34,7 +34,7 @@ public:
         auto question_json = serialize(question);
         auto answer = inner_->ask(typeid(Question).name(), question_json.dump(), options);
         auto json = nlohmann::json::parse(answer.content);
-        return json.template get<AnswerType>();
+        return deserialize<AnswerType>(json);
     }
 
     void tell(const std::string& content_type, const std::string& content) { inner_->tell(content_type, content); }
@@ -56,7 +56,7 @@ public:
             typeid(Question).name(),
             [handler](const std::string& content) {
                 auto json = nlohmann::json::parse(content);
-                auto question = json.template get<Question>();
+                auto question = deserialize<Question>(json);
                 auto answer_json = serialize(handler(question));
                 return Answer{
                     .content_type = typeid(AnswerType).name(),
@@ -74,7 +74,7 @@ public:
             typeid(Message).name(),
             [handler](const std::string& content) {
                 auto json = nlohmann::json::parse(content);
-                handler(json.template get<Message>());
+                handler(deserialize<Message>(json));
             });
     }
 
@@ -100,9 +100,15 @@ private:
     template <typename T>
     static nlohmann::json serialize(const T& value) {
         nlohmann::json json_value;
-        using nlohmann::to_json;
-        to_json(json_value, value);
+        nlohmann::adl_serializer<T>::to_json(json_value, value);
         return json_value;
+    }
+
+    template <typename T>
+    static T deserialize(const nlohmann::json& value) {
+        T result{};
+        nlohmann::adl_serializer<T>::from_json(value, result);
+        return result;
     }
 };
 

@@ -70,3 +70,17 @@ propagates detailed failures using C++ exceptions.
 
 Refer to the header files under `Minx.ZMesh.Cpp/include/zmesh` for the full set
 of APIs and message model definitions.
+
+### Sample console application
+
+The solution also includes a `Minx.ZMesh.Cpp.Sample` console application that
+demonstrates invoking the client library. To run it, build both the static
+library and the sample project, then launch the resulting executable with an
+endpoint and message box name:
+
+```powershell
+Minx.ZMesh.Cpp.Sample.exe tcp://127.0.0.1:5555 Orders sample-client
+```
+
+The sample sends an `OrderStatus` request using a short timeout and prints the
+answer or any error returned by the client.

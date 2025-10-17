@@ -2,17 +2,37 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include <nlohmann/json.hpp>
 
-#include <zmesh/zmesh_client.hpp>
+#include <zmesh/request_options.hpp>
+#include <zmesh/typed_message_box.hpp>
+#include <zmesh/zmesh.hpp>
+
+namespace sample
+{
+
+struct OrderStatusRequest {
+    int OrderId;
+    std::string Action;
+};
+
+struct OrderStatusResponse {
+    std::string Status;
+};
+
+} // namespace sample
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(sample::OrderStatusRequest, OrderId, Action)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(sample::OrderStatusResponse, Status)
 
 namespace {
 
 void print_usage(const char* executable_name) {
-    std::cout << "Usage: " << executable_name << " <endpoint> <message-box> [identity]" << std::endl;
+    std::cout << "Usage: " << executable_name << " <endpoint> <message-box>" << std::endl;
     std::cout << "\nExample:" << std::endl;
-    std::cout << "  " << executable_name << " tcp://127.0.0.1:5555 Orders sample-client" << std::endl;
+    std::cout << "  " << executable_name << " tcp://127.0.0.1:5555 Orders" << std::endl;
     std::cout << std::endl;
 }
 
@@ -26,24 +46,21 @@ int main(int argc, char** argv) {
 
     const std::string endpoint = argv[1];
     const std::string message_box = argv[2];
-    const std::optional<std::string> identity = argc >= 4 ? std::optional<std::string>{argv[3]} : std::nullopt;
 
     try {
-        zmesh::ZMeshClient client{endpoint, message_box, identity};
-
-        const nlohmann::json payload = {
-            {"OrderId", 42},
-            {"Action", "Status"}
-        };
+        std::unordered_map<std::string, std::string> system_map{{message_box, endpoint}};
+        zmesh::ZMesh mesh{std::nullopt, std::move(system_map)};
+        auto typed_box = mesh.at(message_box);
 
         const zmesh::RequestOptions options{
             std::chrono::milliseconds{1000},
             1
         };
 
-        std::cout << "Sending OrderStatus request..." << std::endl;
-        const auto answer = client.ask("OrderStatus", payload, options);
-        std::cout << "Received answer with status " << answer.status_code << ': ' << answer.content << std::endl;
+        std::cout << "Sending OrderStatus request via message box..." << std::endl;
+        const auto response = typed_box->ask<sample::OrderStatusRequest, sample::OrderStatusResponse>(
+            sample::OrderStatusRequest{.OrderId = 42, .Action = "Status"}, options);
+        std::cout << "Received answer with status " << response.Status << std::endl;
     } catch (const std::exception& ex) {
         std::cerr << "Request failed: " << ex.what() << std::endl;
         std::cerr << "Ensure a ZMesh broker is reachable at the given endpoint." << std::endl;

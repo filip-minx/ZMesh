@@ -44,33 +44,56 @@ serialization respectively.
 
 ### Usage
 
-The entry point for native integrations is the `zmesh::ZMeshClient` class in the
-`include/zmesh` directory. A minimal usage example is shown below:
+The preferred entry point for native integrations is the message box workflow
+that mirrors the .NET implementation. The snippet below demonstrates issuing a
+typed question using the `zmesh::ZMesh` router and `zmesh::TypedMessageBox`:
 
 ```cpp
-#include <zmesh/zmesh_client.hpp>
+#include <zmesh/request_options.hpp>
+#include <zmesh/typed_message_box.hpp>
+#include <zmesh/zmesh.hpp>
+
+#include <chrono>
+#include <iostream>
+#include <optional>
+#include <unordered_map>
+
 #include <nlohmann/json.hpp>
 
-int main() {
-    zmesh::ZMeshClient client{"127.0.0.1:5555", "Orders"};
+struct OrderStatusRequest {
+    int OrderId;
+    std::string Action;
+};
 
-    nlohmann::json payload = {
-        {"OrderId", 42},
-        {"Action", "Status"}
+struct OrderStatusResponse {
+    std::string Status;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OrderStatusRequest, OrderId, Action)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OrderStatusResponse, Status)
+
+int main() {
+    std::unordered_map<std::string, std::string> system_map{{"Orders", "tcp://127.0.0.1:5555"}};
+
+    zmesh::ZMesh mesh{std::nullopt, system_map};
+    auto orders_box = mesh.at("Orders");
+
+    const zmesh::RequestOptions options{
+        std::chrono::seconds{1},
+        1
     };
 
-    auto answer = client.ask("OrderStatus", payload);
-    std::cout << "Received answer: " << answer.content << std::endl;
+    auto response = orders_box->ask<OrderStatusRequest, OrderStatusResponse>(
+        OrderStatusRequest{.OrderId = 42, .Action = "Status"}, options);
+
+    std::cout << "Received answer: " << response.Status << std::endl;
 }
 ```
 
-`ZMeshClient` provides templated helpers to work directly with types that have
-`nlohmann::json` conversions. The implementation also retries requests and
-propagates detailed failures using C++ exceptions.
-
-For parity with the C# reference implementation the native library now also
-exposes the message box workflow used by services to process questions and
-tells.
+`TypedMessageBox` serialises payloads with `nlohmann::json`, manages retries,
+and raises the same events available in the managed implementation. For lower
+level access, the underlying `zmesh::MessageBox` exposes the raw `ask`/`tell`
+APIs.
 
 #### Hosting message boxes
 
@@ -125,13 +148,13 @@ of APIs and message model definitions.
 ### Sample console application
 
 The solution also includes a `Minx.ZMesh.Cpp.Sample` console application that
-demonstrates invoking the client library. To run it, build both the static
-library and the sample project, then launch the resulting executable with an
-endpoint and message box name:
+demonstrates invoking the client library through message boxes. To run it, build
+both the static library and the sample project, then launch the resulting
+executable with an endpoint and message box name:
 
 ```powershell
-Minx.ZMesh.Cpp.Sample.exe tcp://127.0.0.1:5555 Orders sample-client
+Minx.ZMesh.Cpp.Sample.exe tcp://127.0.0.1:5555 Orders
 ```
 
-The sample sends an `OrderStatus` request using a short timeout and prints the
-answer or any error returned by the client.
+The sample sends an `OrderStatus` request through a typed message box using a
+short timeout and prints the answer or any error returned by the client.

@@ -84,12 +84,20 @@
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\zmesh\message_box.hpp" />
+    <ClInclude Include="include\zmesh\message_box_processor.hpp" />
     <ClInclude Include="include\zmesh\messages.hpp" />
+    <ClInclude Include="include\zmesh\request_options.hpp" />
+    <ClInclude Include="include\zmesh\typed_message_box.hpp" />
     <ClInclude Include="include\zmesh\uuid.hpp" />
     <ClInclude Include="include\zmesh\zmesh_client.hpp" />
+    <ClInclude Include="include\zmesh\zmesh.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\message_box.cpp" />
+    <ClCompile Include="src\message_box_processor.cpp" />
     <ClCompile Include="src\zmesh_client.cpp" />
+    <ClCompile Include="src\zmesh.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

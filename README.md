@@ -68,6 +68,57 @@ int main() {
 `nlohmann::json` conversions. The implementation also retries requests and
 propagates detailed failures using C++ exceptions.
 
+For parity with the C# reference implementation the native library now also
+exposes the message box workflow used by services to process questions and
+tells.
+
+#### Hosting message boxes
+
+`zmesh::ZMesh` mirrors the .NET class of the same name. It can optionally bind a
+ZeroMQ router socket and surfaces typed message boxes backed by the same
+in-memory queues and retry semantics as the managed version:
+
+```cpp
+#include <zmesh/message_box_processor.hpp>
+#include <zmesh/zmesh.hpp>
+
+struct OrderStatusRequest {
+    int OrderId;
+    std::string Action;
+};
+
+struct OrderStatusResponse {
+    std::string Status;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OrderStatusRequest, OrderId, Action)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OrderStatusResponse, Status)
+
+int main() {
+    std::unordered_map<std::string, std::string> system_map{{"Orders", "127.0.0.1:5555"}};
+
+    zmesh::ZMesh mesh{"127.0.0.1:5555", system_map};
+    auto orders_box = mesh.at("Orders");
+
+    zmesh::MessageBoxProcessor processor{orders_box};
+    processor.answer<OrderStatusRequest, OrderStatusResponse>([](const OrderStatusRequest& request) {
+        return OrderStatusResponse{.Status = request.Action == "Status" ? "Filled" : "Unknown"};
+    });
+
+    for (;;) {
+        processor.process_all();
+    }
+}
+```
+
+`zmesh::MessageBox` exposes the same `Tell`, `Ask`, `TryAnswer`, and
+`TryListen` primitives as the managed `AbstractMessageBox`. Its typed wrapper,
+`zmesh::TypedMessageBox`, provides template helpers that serialise payloads
+using `nlohmann::json`. Events (`add_tell_received_handler` and
+`add_question_received_handler`) fire whenever new payloads are queued by the
+router, enabling processors to react immediately just like the C#
+`MessageBoxProcessor`.
+
 Refer to the header files under `Minx.ZMesh.Cpp/include/zmesh` for the full set
 of APIs and message model definitions.
 

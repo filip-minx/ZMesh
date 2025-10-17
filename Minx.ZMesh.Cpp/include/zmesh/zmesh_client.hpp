@@ -10,14 +10,10 @@
 #include <zmq.hpp>
 
 #include "messages.hpp"
+#include "request_options.hpp"
 #include "uuid.hpp"
 
 namespace zmesh {
-
-struct RequestOptions {
-    std::chrono::milliseconds timeout{std::chrono::milliseconds{3000}};
-    int max_retries{3};
-};
 
 class ZMeshClient {
 public:

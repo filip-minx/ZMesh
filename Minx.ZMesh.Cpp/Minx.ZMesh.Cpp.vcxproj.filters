@@ -9,7 +9,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\zmesh\message_box.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\zmesh\message_box_processor.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="include\zmesh\messages.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\zmesh\request_options.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\zmesh\typed_message_box.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\zmesh\uuid.hpp">
@@ -18,9 +30,21 @@
     <ClInclude Include="include\zmesh\zmesh_client.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\zmesh\zmesh.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\message_box.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\message_box_processor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\zmesh_client.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\zmesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

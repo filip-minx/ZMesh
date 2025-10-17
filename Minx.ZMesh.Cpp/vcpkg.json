@@ -1,0 +1,9 @@
+{
+  "name": "minx-zmesh-cpp",
+  "version-string": "0.1.0",
+  "builtin-baseline": "f787b11768c36bba4ea3be80fbbdeb2af6895bb6",
+  "dependencies": [
+    "nlohmann-json",
+    "zeromq"
+  ]
+}

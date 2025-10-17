@@ -17,14 +17,30 @@ serialization respectively.
 
 ### Building with Visual Studio
 
-1. Install [vcpkg](https://github.com/microsoft/vcpkg) and integrate it with
-   Visual Studio if you have not done so already.
-2. Open the `Minx.ZMesh.sln` solution in Visual Studio 2022 or newer.
-3. Ensure vcpkg is enabled for manifest mode (the project sets the required
-   MSBuild properties automatically).
-4. Build the `Minx.ZMesh.Cpp` project using the `x64` Debug or Release
-   configurations. vcpkg will restore the `zeromq` and `nlohmann-json`
-   dependencies declared in `Minx.ZMesh.Cpp/vcpkg.json`.
+1. Install [vcpkg](https://github.com/microsoft/vcpkg) if it is not already
+   available on your machine:
+
+   ```powershell
+   git clone https://github.com/microsoft/vcpkg.git
+   .\vcpkg\bootstrap-vcpkg.bat
+   ```
+
+2. Integrate vcpkg with MSBuild once so that Visual Studio can automatically
+   restore manifest dependencies:
+
+   ```powershell
+   .\vcpkg\vcpkg.exe integrate install
+   ```
+
+   (If vcpkg lives somewhere other than your repository root, set the
+   `VCPKG_ROOT` environment variable to its location.)
+
+3. Open the `Minx.ZMesh.sln` solution in Visual Studio 2022 or newer and select
+   either the `Debug|x64` or `Release|x64` configuration.
+
+4. Build the `Minx.ZMesh.Cpp` project. The MSBuild integration restores the
+   manifest found at `Minx.ZMesh.Cpp/vcpkg.json`, which supplies the
+   `cppzmq`, `zeromq`, and `nlohmann-json` packages required by the library.
 
 ### Usage
 

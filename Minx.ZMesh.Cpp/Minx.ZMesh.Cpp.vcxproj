@@ -50,8 +50,9 @@
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnabled>true</VcpkgEnabled>
-    <UseVcpkgManifest>true</UseVcpkgManifest>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
     <VcpkgManifestRoot>$(ProjectDir)</VcpkgManifestRoot>
+    <VcpkgTriplet>x64-windows</VcpkgTriplet>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

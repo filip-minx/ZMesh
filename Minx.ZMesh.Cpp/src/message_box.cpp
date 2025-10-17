@@ -238,7 +238,8 @@ void MessageBox::worker_loop(std::stop_token stop_token) {
         }
 
         zmq::pollitem_t items[] = {{static_cast<void*>(socket), 0, ZMQ_POLLIN, 0}};
-        zmq::poll(items, 1, static_cast<long>(POLL_INTERVAL.count()));
+        [[maybe_unused]] const auto poll_result =
+            zmq::poll(items, 1, static_cast<long>(POLL_INTERVAL.count()));
 
         if (items[0].revents & ZMQ_POLLIN) {
             zmq::message_t payload_frame;
@@ -261,8 +262,15 @@ void MessageBox::send_message(zmq::socket_t& socket, const OutgoingMessage& mess
     zmq::message_t type_frame{type_string.begin(), type_string.end()};
     zmq::message_t payload_frame{payload.begin(), payload.end()};
 
-    socket.send(type_frame, zmq::send_flags::sndmore);
-    socket.send(payload_frame, zmq::send_flags::none);
+    const auto type_sent = socket.send(type_frame, zmq::send_flags::sndmore);
+    if (!type_sent) {
+        throw std::runtime_error("failed to send message type frame");
+    }
+
+    const auto payload_sent = socket.send(payload_frame, zmq::send_flags::none);
+    if (!payload_sent) {
+        throw std::runtime_error("failed to send message payload frame");
+    }
 }
 
 void MessageBox::handle_answer(const AnswerMessage& answer) {

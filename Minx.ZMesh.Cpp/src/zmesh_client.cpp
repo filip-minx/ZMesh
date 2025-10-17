@@ -126,8 +126,15 @@ void ZMeshClient::send_message(MessageType type, const nlohmann::json& payload_j
     zmq::message_t type_frame{type_string.begin(), type_string.end()};
     zmq::message_t payload_frame{payload.begin(), payload.end()};
 
-    socket_->send(type_frame, zmq::send_flags::sndmore);
-    socket_->send(payload_frame, zmq::send_flags::none);
+    const auto type_sent = socket_->send(type_frame, zmq::send_flags::sndmore);
+    if (!type_sent) {
+        throw std::runtime_error("failed to send message type frame");
+    }
+
+    const auto payload_sent = socket_->send(payload_frame, zmq::send_flags::none);
+    if (!payload_sent) {
+        throw std::runtime_error("failed to send message payload frame");
+    }
 }
 
 std::optional<AnswerMessage> ZMeshClient::receive_answer(std::chrono::milliseconds timeout) {

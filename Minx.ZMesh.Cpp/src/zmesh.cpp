@@ -36,7 +36,7 @@ void ZMesh::router_loop(std::stop_token stop_token) {
 
     while (!stop_token.stop_requested()) {
         zmq::pollitem_t items[] = {{static_cast<void*>(router), 0, ZMQ_POLLIN, 0}};
-        zmq::poll(items, 1, 50);
+        [[maybe_unused]] const auto poll_result = zmq::poll(items, 1, 50);
 
         if (items[0].revents & ZMQ_POLLIN) {
             zmq::message_t identity;
@@ -98,7 +98,9 @@ ZMesh::MessageBoxEntry& ZMesh::ensure_entry(const std::string& name) {
     if (it == message_boxes_.end()) {
         auto message_box = create_message_box(name);
         auto typed = std::make_shared<TypedMessageBox>(message_box);
-        auto [inserted, _] = message_boxes_.emplace(name, MessageBoxEntry{message_box, typed});
+        auto [inserted, inserted_success] =
+            message_boxes_.emplace(name, MessageBoxEntry{message_box, typed});
+        (void)inserted_success;
         return inserted->second;
     }
 
@@ -146,8 +148,15 @@ void ZMesh::flush_answers(zmq::socket_t& router_socket) {
         zmq::message_t identity_frame{identity.begin(), identity.end()};
         zmq::message_t payload_frame{json.begin(), json.end()};
 
-        router_socket.send(identity_frame, zmq::send_flags::sndmore);
-        router_socket.send(payload_frame, zmq::send_flags::none);
+        const auto identity_sent = router_socket.send(identity_frame, zmq::send_flags::sndmore);
+        if (!identity_sent) {
+            throw std::runtime_error("failed to send answer identity frame");
+        }
+
+        const auto payload_sent = router_socket.send(payload_frame, zmq::send_flags::none);
+        if (!payload_sent) {
+            throw std::runtime_error("failed to send answer payload frame");
+        }
     }
 }
 

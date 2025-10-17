@@ -100,14 +100,14 @@ private:
     template <typename T>
     static nlohmann::json serialize(const T& value) {
         nlohmann::json json_value;
-        nlohmann::adl_serializer<T>::to_json(json_value, value);
+        nlohmann::to_json(json_value, value);
         return json_value;
     }
 
     template <typename T>
     static T deserialize(const nlohmann::json& value) {
         T result{};
-        nlohmann::adl_serializer<T>::from_json(value, result);
+        nlohmann::from_json(value, result);
         return result;
     }
 };

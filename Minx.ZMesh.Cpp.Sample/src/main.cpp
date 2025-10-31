@@ -21,11 +21,11 @@ void print_usage(const char* executable_name) {
 int main(int argc, char** argv) {
     if (argc < 3) {
         print_usage(argv[0]);
-        return 1;
+        //return 1;
     }
 
-    const std::string endpoint = argv[1];
-    const std::string message_box = argv[2];
+    const std::string endpoint = "127.0.0.1:5001";
+    const std::string message_box = "Orders";
 
     try {
         std::unordered_map<std::string, std::string> system_map{{message_box, endpoint}};
@@ -33,12 +33,12 @@ int main(int argc, char** argv) {
         auto box = mesh.at(message_box);
 
         const zmesh::RequestOptions options{
-            std::chrono::milliseconds{1000},
+            std::chrono::milliseconds{100000},
             1
         };
 
         std::cout << "Sending OrderStatus request via message box..." << std::endl;
-        const std::string content_type = "sample.order-status";
+        const std::string content_type = "OrderStatusRequest";
         const std::string payload = "OrderId=42;Action=Status";
         const auto response = box->ask(content_type, payload, options);
         std::cout << "Received answer of type " << response.content_type << ": " << response.content << std::endl;

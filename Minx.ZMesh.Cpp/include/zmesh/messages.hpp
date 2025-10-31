@@ -89,11 +89,11 @@ inline nlohmann::json serialize_message_base(const Message& message) {
 }
 
 inline void deserialize_message_base(const nlohmann::json& json, Message& message) {
-    const auto type = json.at("messageType").get<std::string>();
+    const auto type = json.at("MessageType").get<std::string>();
     message.message_type = message_type_from_string(type);
-    message.content_type = json.at("contentType").get<std::string>();
-    message.content = json.at("content").get<std::string>();
-    message.message_box_name = json.at("messageBoxName").get<std::string>();
+    message.content_type = json.at("ContentType").get<std::string>();
+    message.content = json.at("Content").get<std::string>();
+    message.message_box_name = json.at("MessageBoxName").get<std::string>();
 }
 
 inline std::string serialize_tell_message(const TellMessage& message) {
@@ -151,7 +151,7 @@ inline AnswerMessage deserialize_answer_message(std::string_view data) {
     if (message.message_type != MessageType::Answer) {
         throw std::runtime_error("invalid serialized answer message: wrong type");
     }
-    message.correlation_id = json.at("correlationId").get<std::string>();
+    message.correlation_id = json.at("CorrelationId").get<std::string>();
     return message;
 }
 

@@ -319,8 +319,7 @@ namespace Minx.ZMesh
 
             _pendingAnswers.Clear();
         }
-    }
-}
+
         private void OnDealerSocketReceiveReady(object sender, NetMQSocketEventArgs e)
         {
             var socket = e.Socket ?? _dealerSocket;
@@ -333,19 +332,33 @@ namespace Minx.ZMesh
 
             var messageType = (MessageType)Enum.Parse(typeof(MessageType), messageTypeString);
 
-            if (messageType != MessageType.Answer)
+            switch (messageType)
             {
-                return;
+                case MessageType.Answer:
+                    var answerMessage = new AnswerMessage
+                    {
+                        MessageBoxName = messageBoxName,
+                        ContentType = contentType,
+                        CorrelationId = correlationId,
+                        Content = content
+                    };
+
+                    WriteAnswerMessage(answerMessage);
+                    break;
+
+                case MessageType.Tell:
+                    var tellMessage = new TellMessage
+                    {
+                        MessageBoxName = messageBoxName,
+                        ContentType = contentType,
+                        Content = content
+                    };
+
+                    WriteTellMessage(tellMessage);
+                    break;
             }
-
-            var answerMessage = new AnswerMessage
-            {
-                MessageBoxName = messageBoxName,
-                ContentType = contentType,
-                CorrelationId = correlationId,
-                Content = content
-            };
-
-            WriteAnswerMessage(answerMessage);
         }
+
+    }
+}
 

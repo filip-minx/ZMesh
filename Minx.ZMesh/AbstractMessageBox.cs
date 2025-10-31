@@ -50,17 +50,17 @@ namespace Minx.ZMesh
             _dealerSocket.ReceiveReady += (s, e) =>
             {
                 var messageTypeString = _dealerSocket.ReceiveFrameString();
+                var messageBoxName = _dealerSocket.ReceiveFrameString();
+                var contentType = _dealerSocket.ReceiveFrameString();
+                var correlationId = _dealerSocket.ReceiveFrameString();
+                var content = _dealerSocket.ReceiveFrameString();
+
                 var messageType = (MessageType)Enum.Parse(typeof(MessageType), messageTypeString);
 
                 if (messageType != MessageType.Answer)
                 {
                     return;
                 }
-
-                var messageBoxName = _dealerSocket.ReceiveFrameString();
-                var contentType = _dealerSocket.ReceiveFrameString();
-                var correlationId = _dealerSocket.ReceiveFrameString();
-                var content = _dealerSocket.ReceiveFrameString();
 
                 var answerMessage = new AnswerMessage
                 {

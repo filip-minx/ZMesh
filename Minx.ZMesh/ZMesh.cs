@@ -54,7 +54,6 @@ namespace Minx.ZMesh
                     .SendMoreFrame(message.Message.MessageBoxName ?? string.Empty)
                     .SendMoreFrame(message.Message.ContentType ?? string.Empty)
                     .SendMoreFrame(message.Message.CorrelationId ?? string.Empty)
-                    .SendMoreFrame(message.Message.Content != null ? "1" : "0")
                     .SendFrame(message.Message.Content ?? string.Empty);
             }
         }
@@ -66,9 +65,7 @@ namespace Minx.ZMesh
             var messageBoxName = e.Socket.ReceiveFrameString();
             var contentType = e.Socket.ReceiveFrameString();
             var correlationId = e.Socket.ReceiveFrameString();
-            var hasContent = e.Socket.ReceiveFrameString();
-            var contentFrame = e.Socket.ReceiveFrameString();
-            var content = hasContent == "1" ? contentFrame : null;
+            var content = e.Socket.ReceiveFrameString();
 
             var messageBox = (TypedMessageBox)At(messageBoxName);
 

@@ -60,10 +60,7 @@ namespace Minx.ZMesh
                 var messageBoxName = _dealerSocket.ReceiveFrameString();
                 var contentType = _dealerSocket.ReceiveFrameString();
                 var correlationId = _dealerSocket.ReceiveFrameString();
-                var hasContent = _dealerSocket.ReceiveFrameString();
-                var contentFrame = _dealerSocket.ReceiveFrameString();
-
-                var content = hasContent == "1" ? contentFrame : null;
+                var content = _dealerSocket.ReceiveFrameString();
 
                 var answerMessage = new AnswerMessage
                 {
@@ -90,13 +87,11 @@ namespace Minx.ZMesh
                 if (message is QuestionMessage questionMessage)
                 {
                     socket.SendMoreFrame(questionMessage.CorrelationId ?? string.Empty)
-                        .SendMoreFrame(questionMessage.Content != null ? "1" : "0")
                         .SendFrame(questionMessage.Content ?? string.Empty);
                 }
                 else
                 {
                     socket.SendMoreFrame(string.Empty)
-                        .SendMoreFrame(message.Content != null ? "1" : "0")
                         .SendFrame(message.Content ?? string.Empty);
                 }
             }

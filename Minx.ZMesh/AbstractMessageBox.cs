@@ -1,7 +1,6 @@
 ﻿using Minx.ZMesh.Models;
 using NetMQ;
 using NetMQ.Sockets;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -50,9 +49,29 @@ namespace Minx.ZMesh
 
             _dealerSocket.ReceiveReady += (s, e) =>
             {
-                var answerMessageJson = _dealerSocket.ReceiveFrameString();
+                var messageTypeString = _dealerSocket.ReceiveFrameString();
+                var messageType = (MessageType)Enum.Parse(typeof(MessageType), messageTypeString);
 
-                var answerMessage = JsonConvert.DeserializeObject<AnswerMessage>(answerMessageJson);
+                if (messageType != MessageType.Answer)
+                {
+                    return;
+                }
+
+                var messageBoxName = _dealerSocket.ReceiveFrameString();
+                var contentType = _dealerSocket.ReceiveFrameString();
+                var correlationId = _dealerSocket.ReceiveFrameString();
+                var hasContent = _dealerSocket.ReceiveFrameString();
+                var contentFrame = _dealerSocket.ReceiveFrameString();
+
+                var content = hasContent == "1" ? contentFrame : null;
+
+                var answerMessage = new AnswerMessage
+                {
+                    MessageBoxName = messageBoxName,
+                    ContentType = contentType,
+                    CorrelationId = correlationId,
+                    Content = content
+                };
 
                 WriteAnswerMessage(answerMessage);
             };
@@ -64,12 +83,22 @@ namespace Minx.ZMesh
         {
             if (_messageQueue.TryDequeue(out var message, TimeSpan.Zero))
             {
-                var messageJson = JsonConvert.SerializeObject(message, Newtonsoft.Json.Formatting.Indented, new JsonSerializerSettings()
-                {
-                    TypeNameHandling = TypeNameHandling.None
-                });
+                var socket = _dealerSocket.SendMoreFrame(message.MessageType.ToString())
+                    .SendMoreFrame(message.MessageBoxName ?? string.Empty)
+                    .SendMoreFrame(message.ContentType ?? string.Empty);
 
-                _dealerSocket.SendMoreFrame(message.MessageType.ToString()).SendFrame(messageJson);
+                if (message is QuestionMessage questionMessage)
+                {
+                    socket.SendMoreFrame(questionMessage.CorrelationId ?? string.Empty)
+                        .SendMoreFrame(questionMessage.Content != null ? "1" : "0")
+                        .SendFrame(questionMessage.Content ?? string.Empty);
+                }
+                else
+                {
+                    socket.SendMoreFrame(string.Empty)
+                        .SendMoreFrame(message.Content != null ? "1" : "0")
+                        .SendFrame(message.Content ?? string.Empty);
+                }
             }
         }
 

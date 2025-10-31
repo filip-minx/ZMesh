@@ -47,31 +47,7 @@ namespace Minx.ZMesh
 
             _messageQueue.ReceiveReady += DequeueAndSendMessage;
 
-            _dealerSocket.ReceiveReady += (s, e) =>
-            {
-                var messageTypeString = _dealerSocket.ReceiveFrameString();
-                var messageBoxName = _dealerSocket.ReceiveFrameString();
-                var contentType = _dealerSocket.ReceiveFrameString();
-                var correlationId = _dealerSocket.ReceiveFrameString();
-                var content = _dealerSocket.ReceiveFrameString();
-
-                var messageType = (MessageType)Enum.Parse(typeof(MessageType), messageTypeString);
-
-                if (messageType != MessageType.Answer)
-                {
-                    return;
-                }
-
-                var answerMessage = new AnswerMessage
-                {
-                    MessageBoxName = messageBoxName,
-                    ContentType = contentType,
-                    CorrelationId = correlationId,
-                    Content = content
-                };
-
-                WriteAnswerMessage(answerMessage);
-            };
+            _dealerSocket.ReceiveReady += OnDealerSocketReceiveReady;
 
             _poller.RunAsync();
         }
@@ -345,3 +321,31 @@ namespace Minx.ZMesh
         }
     }
 }
+        private void OnDealerSocketReceiveReady(object sender, NetMQSocketEventArgs e)
+        {
+            var socket = e.Socket ?? _dealerSocket;
+
+            var messageTypeString = socket.ReceiveFrameString();
+            var messageBoxName = socket.ReceiveFrameString();
+            var contentType = socket.ReceiveFrameString();
+            var correlationId = socket.ReceiveFrameString();
+            var content = socket.ReceiveFrameString();
+
+            var messageType = (MessageType)Enum.Parse(typeof(MessageType), messageTypeString);
+
+            if (messageType != MessageType.Answer)
+            {
+                return;
+            }
+
+            var answerMessage = new AnswerMessage
+            {
+                MessageBoxName = messageBoxName,
+                ContentType = contentType,
+                CorrelationId = correlationId,
+                Content = content
+            };
+
+            WriteAnswerMessage(answerMessage);
+        }
+

@@ -18,6 +18,10 @@
 
 #include <zmq.hpp>
 
+#ifdef Answer
+#    undef Answer
+#endif
+
 namespace Minx::ZMesh
 {
     class AbstractMessageBox : public IAbstractMessageBox, public std::enable_shared_from_this<AbstractMessageBox>

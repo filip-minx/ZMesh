@@ -2,6 +2,10 @@
 
 #include <string>
 
+#ifdef Answer
+#    undef Answer
+#endif
+
 namespace Minx::ZMesh
 {
     struct Answer

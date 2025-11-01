@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <string_view>
 
 #include <zmq.hpp>
 
@@ -58,6 +59,9 @@ namespace Minx::ZMesh
             Question,
             Answer
         };
+
+        static constexpr std::string_view ToMessageTypeString(MessageType type) noexcept;
+        static MessageType ParseMessageType(std::string_view value);
 
         void RunReceiver(std::stop_token stop_token);
         void DispatchTell(const std::string& content_type, const std::string& content);

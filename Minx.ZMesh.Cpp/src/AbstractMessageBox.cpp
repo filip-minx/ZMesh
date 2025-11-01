@@ -14,48 +14,45 @@ using namespace std::chrono_literals;
 
 namespace Minx::ZMesh
 {
-    namespace
+    constexpr std::string_view AbstractMessageBox::ToMessageTypeString(MessageType type) noexcept
     {
-        constexpr std::string_view ToMessageTypeString(AbstractMessageBox::MessageType type) noexcept
+        switch (type)
         {
-            switch (type)
-            {
-            case AbstractMessageBox::MessageType::Tell:
-                return "Tell";
-            case AbstractMessageBox::MessageType::Question:
-                return "Question";
-            case AbstractMessageBox::MessageType::Answer:
-                return "Answer";
-            }
-            return "";
+        case MessageType::Tell:
+            return "Tell";
+        case MessageType::Question:
+            return "Question";
+        case MessageType::Answer:
+            return "Answer";
+        }
+        return "";
+    }
+
+    AbstractMessageBox::MessageType AbstractMessageBox::ParseMessageType(const std::string_view value)
+    {
+        if (value == "Tell")
+        {
+            return MessageType::Tell;
         }
 
-        AbstractMessageBox::MessageType ParseMessageType(const std::string_view value)
+        if (value == "Question")
         {
-            if (value == "Tell")
-            {
-                return AbstractMessageBox::MessageType::Tell;
-            }
-
-            if (value == "Question")
-            {
-                return AbstractMessageBox::MessageType::Question;
-            }
-
-            if (value == "Answer")
-            {
-                return AbstractMessageBox::MessageType::Answer;
-            }
-
-            throw std::runtime_error{"Unsupported message type received."};
+            return MessageType::Question;
         }
+
+        if (value == "Answer")
+        {
+            return MessageType::Answer;
+        }
+
+        throw std::runtime_error{"Unsupported message type received."};
     }
 
     AbstractMessageBox::AbstractMessageBox(std::string endpoint, ConnectionMode mode)
         : endpoint_{std::move(endpoint)}
         , mode_{mode}
         , context_{1}
-        , socket_{context_, zmq::socket_type::PAIR}
+        , socket_{context_, zmq::socket_type::pair}
         , random_engine_{std::random_device{}()}
     {
         socket_.set(zmq::sockopt::rcvtimeo, 100);

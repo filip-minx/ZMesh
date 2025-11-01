@@ -9,6 +9,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Minx.ZMesh.Probe", "Minx.ZM
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Minx.ZMesh.Cpp", "Minx.ZMesh.Cpp\Minx.ZMesh.Cpp.vcxproj", "{F5B176F4-7088-4F8F-AC5B-7A72A9F8D97F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Minx.ZMesh.Cpp.Example", "Minx.ZMesh.Cpp.Example\Minx.ZMesh.Cpp.Example.vcxproj", "{4959575E-7689-4D80-B108-214545709140}"
+        ProjectSection(ProjectDependencies) = postProject
+                {F5B176F4-7088-4F8F-AC5B-7A72A9F8D97F} = {F5B176F4-7088-4F8F-AC5B-7A72A9F8D97F}
+        EndProjectSection
+EndProject
 Global
         GlobalSection(SolutionConfigurationPlatforms) = preSolution
                 Debug|Any CPU = Debug|Any CPU
@@ -41,6 +46,14 @@ Global
                 {F5B176F4-7088-4F8F-AC5B-7A72A9F8D97F}.Release|Any CPU.Build.0 = Release|x64
                 {F5B176F4-7088-4F8F-AC5B-7A72A9F8D97F}.Release|x64.ActiveCfg = Release|x64
                 {F5B176F4-7088-4F8F-AC5B-7A72A9F8D97F}.Release|x64.Build.0 = Release|x64
+                {4959575E-7689-4D80-B108-214545709140}.Debug|Any CPU.ActiveCfg = Debug|x64
+                {4959575E-7689-4D80-B108-214545709140}.Debug|Any CPU.Build.0 = Debug|x64
+                {4959575E-7689-4D80-B108-214545709140}.Debug|x64.ActiveCfg = Debug|x64
+                {4959575E-7689-4D80-B108-214545709140}.Debug|x64.Build.0 = Debug|x64
+                {4959575E-7689-4D80-B108-214545709140}.Release|Any CPU.ActiveCfg = Release|x64
+                {4959575E-7689-4D80-B108-214545709140}.Release|Any CPU.Build.0 = Release|x64
+                {4959575E-7689-4D80-B108-214545709140}.Release|x64.ActiveCfg = Release|x64
+                {4959575E-7689-4D80-B108-214545709140}.Release|x64.Build.0 = Release|x64
         EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

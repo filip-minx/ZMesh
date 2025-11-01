@@ -1,0 +1,8 @@
+{
+  "name": "minx-zmesh-cpp",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "zeromq",
+    "cppzmq"
+  ]
+}

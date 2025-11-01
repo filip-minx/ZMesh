@@ -1,7 +1,6 @@
 ﻿using Minx.ZMesh.Models;
 using Minx.ZMesh.Serialization;
 using NetMQ;
-using Newtonsoft.Json;
 
 namespace Minx.ZMesh
 {
@@ -22,13 +21,6 @@ namespace Minx.ZMesh
 
         public void Answer(Answer answer)
         {
-            var questionMessage = JsonConvert.DeserializeObject(QuestionMessage.Content, TypeResolver.GetTypeInAllAssemblies(QuestionMessage.ContentType));
-
-            var answerContentJson = JsonConvert.SerializeObject(answer, Formatting.Indented, new JsonSerializerSettings()
-            {
-                TypeNameHandling = TypeNameHandling.None
-            });
-
             var answerMessage = new AnswerMessage
             {
                 ContentType = answer.ContentType,

@@ -1,5 +1,8 @@
 ﻿using Minx.ZMesh;
+using NetMQ;
+using NetMQ.Sockets;
 using Newtonsoft.Json;
+using System.Net;
 using static NamedArguments;
 
 var map = GetAs("map", "sysmap.yaml");
@@ -72,6 +75,9 @@ if (GetAs("tell", false))
         }
 
         box.Tell(contentType, content);
+
+        // Give some time for the message to be sent before exiting
+        Thread.Sleep(100);
     }
     else
     {

@@ -2,11 +2,10 @@
 using Minx.ZMesh.Serialization;
 using NetMQ;
 using NetMQ.Sockets;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using JsonSerializer = Minx.ZMesh.Serialization.JsonSerializer;
+using System.Threading.Tasks;
 
 namespace Minx.ZMesh
 {
@@ -50,34 +49,50 @@ namespace Minx.ZMesh
         {
             if (_answerQueue.TryDequeue(out var message, TimeSpan.Zero))
             {
-                var messageJson = JsonConvert.SerializeObject(message.Message, Formatting.Indented, new JsonSerializerSettings()
-                {
-                    TypeNameHandling = TypeNameHandling.None
-                });
-
-                _routerSocket.SendMoreFrame(message.DealerIdentity).SendFrame(messageJson);
+                _routerSocket
+                    .SendMoreFrame(message.DealerIdentity)
+                    .SendMoreFrame(MessageType.Answer.ToString())
+                    .SendMoreFrame(message.Message.MessageBoxName)
+                    .SendMoreFrame(message.Message.CorrelationId)
+                    .SendMoreFrame(message.Message.ContentType)
+                    .SendFrame(message.Message.Content);
             }
         }
 
         private void HandleMessage(object sender, NetMQSocketEventArgs e)
         {
             var identity = e.Socket.ReceiveFrameString();
+            var messageBoxName = e.Socket.ReceiveFrameString();
             var messageType = (MessageType)Enum.Parse(typeof(MessageType), e.Socket.ReceiveFrameString());
-            var messageJson = e.Socket.ReceiveFrameString();
+            var correlationId = e.Socket.ReceiveFrameString();
+            var contentType = e.Socket.ReceiveFrameString();
+            var content = e.Socket.ReceiveFrameString();
 
-            Message message = DeserializeMessage(messageType, messageJson);
-
-            var messageBox = (TypedMessageBox)At(message.MessageBoxName);
+            var messageBox = (TypedMessageBox)At(messageBoxName);
 
             switch (messageType)
             {
                 case MessageType.Tell:
-                    var answerMessage = (TellMessage)message;
+                    var answerMessage = new AnswerMessage
+                    {
+                        MessageBoxName = messageBoxName,
+                        ContentType = contentType,
+                        Content = content
+                    };
+
                     messageBox?.WriteTellMessage(answerMessage);
+
                     break;
 
                 case MessageType.Question:
-                    var questionMessage = (QuestionMessage)message;
+                    var questionMessage = new QuestionMessage
+                    {
+                        MessageBoxName = messageBoxName,
+                        CorrelationId = correlationId,
+                        ContentType = contentType,
+                        Content = content
+                    };
+
                     var pendingQuestion = new PendingQuestion(questionMessage.MessageBoxName)
                     {
                         DealerIdentity = identity,
@@ -88,19 +103,6 @@ namespace Minx.ZMesh
                     messageBox?.WriteQuestionMessage(pendingQuestion);
 
                     break;
-            }
-        }
-
-        private Message DeserializeMessage(MessageType messageType, string messageJson)
-        {
-            switch (messageType)
-            {
-                case MessageType.Tell:
-                    return JsonConvert.DeserializeObject<TellMessage>(messageJson);
-                case MessageType.Question:
-                    return JsonConvert.DeserializeObject<QuestionMessage>(messageJson);
-                default:
-                    throw new InvalidOperationException("Unknown message type");
             }
         }
 

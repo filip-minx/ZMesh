@@ -1,7 +1,6 @@
 ﻿using Minx.ZMesh.Models;
 using NetMQ;
 using NetMQ.Sockets;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -50,11 +49,30 @@ namespace Minx.ZMesh
 
             _dealerSocket.ReceiveReady += (s, e) =>
             {
-                var answerMessageJson = _dealerSocket.ReceiveFrameString();
+                var messageType = _dealerSocket.ReceiveFrameString();
+                var messageBoxName = _dealerSocket.ReceiveFrameString();
 
-                var answerMessage = JsonConvert.DeserializeObject<AnswerMessage>(answerMessageJson);
+                if (messageType == MessageType.Answer.ToString())
+                {
+                    var correlationId = _dealerSocket.ReceiveFrameString();
+                    var contentType = _dealerSocket.ReceiveFrameString();
+                    var content = _dealerSocket.ReceiveFrameString();
 
-                WriteAnswerMessage(answerMessage);
+                    var answerMessage = new AnswerMessage
+                    {
+                        MessageBoxName = messageBoxName,
+                        CorrelationId = correlationId,
+                        ContentType = contentType,
+                        Content = content
+                    };
+
+                    WriteAnswerMessage(answerMessage);
+                }
+                else
+                {
+                    // Unknown message type
+                    throw new InvalidOperationException($"Unknown message type received: {messageType}");
+                }
             };
 
             _poller.RunAsync();
@@ -64,12 +82,26 @@ namespace Minx.ZMesh
         {
             if (_messageQueue.TryDequeue(out var message, TimeSpan.Zero))
             {
-                var messageJson = JsonConvert.SerializeObject(message, Newtonsoft.Json.Formatting.Indented, new JsonSerializerSettings()
+                switch (message)
                 {
-                    TypeNameHandling = TypeNameHandling.None
-                });
+                    case TellMessage m:
+                        _dealerSocket
+                            .SendMoreFrame(m.MessageBoxName)
+                            .SendMoreFrame(m.MessageType.ToString())
+                            .SendMoreFrame(string.Empty)
+                            .SendMoreFrame(m.ContentType)
+                            .SendFrame(m.Content);
+                        break;
 
-                _dealerSocket.SendMoreFrame(message.MessageType.ToString()).SendFrame(messageJson);
+                    case QuestionMessage m:
+                        _dealerSocket
+                            .SendMoreFrame(m.MessageBoxName)
+                            .SendMoreFrame(m.MessageType.ToString())
+                            .SendMoreFrame(m.CorrelationId)
+                            .SendMoreFrame(m.ContentType)
+                            .SendFrame(m.Content);
+                        break;
+                }
             }
         }
 

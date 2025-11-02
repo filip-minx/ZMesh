@@ -2,13 +2,9 @@
 
 #include <string>
 
-#ifdef Answer
-#    undef Answer
-#endif
-
 namespace Minx::ZMesh
 {
-    struct Answer
+    struct Response
     {
         std::string content_type;
         std::string content;

@@ -3,6 +3,7 @@
 #include "IAbstractMessageBox.h"
 
 #include <atomic>
+#include <chrono>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -46,10 +47,10 @@ namespace Minx::ZMesh
 
         void Tell(std::string_view content_type, std::string_view content) override;
         bool TryListen(std::string content_type, ListenHandler handler) override;
-        Answer Ask(std::string_view content_type) override;
-        Answer Ask(std::string_view content_type, std::string_view content) override;
-        Answer Ask(std::string_view content_type, std::string_view content, std::chrono::milliseconds timeout) override;
-        Answer Ask(std::string_view content_type, std::string_view content, std::stop_token stop_token) override;
+        Response Ask(std::string_view content_type) override;
+        Response Ask(std::string_view content_type, std::string_view content) override;
+        Response Ask(std::string_view content_type, std::string_view content, std::chrono::milliseconds timeout) override;
+        Response Ask(std::string_view content_type, std::string_view content, std::stop_token stop_token) override;
         bool TryAnswer(std::string question_content_type, AnswerHandler handler) override;
 
         std::optional<PendingQuestion> GetQuestion(std::string question_type) override;
@@ -80,7 +81,7 @@ namespace Minx::ZMesh
                          std::string_view content_type,
                          std::string_view correlation_id,
                          std::string_view content);
-        void SendAnswer(const std::string& correlation_id, const Answer& answer) const;
+        void SendAnswer(const std::string& correlation_id, const Response& response) const;
 
         [[nodiscard]] std::string NextCorrelationId();
 
@@ -99,7 +100,7 @@ namespace Minx::ZMesh
         std::unordered_map<std::string, AnswerHandler> answer_handlers_;
 
         std::mutex pending_answers_mutex_;
-        std::unordered_map<std::string, std::promise<Answer>> pending_answers_;
+        std::unordered_map<std::string, std::promise<Response>> pending_answers_;
 
         std::mutex pending_questions_mutex_;
         std::unordered_map<std::string, std::queue<PendingQuestion>> pending_questions_;

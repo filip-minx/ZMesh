@@ -101,16 +101,16 @@ namespace Minx::ZMesh
         return listen_handlers_.emplace(std::move(content_type), std::move(handler)).second;
     }
 
-    Answer AbstractMessageBox::Ask(std::string_view content_type)
+    Response AbstractMessageBox::Ask(std::string_view content_type)
     {
         return Ask(content_type, "");
     }
 
-    Answer AbstractMessageBox::Ask(std::string_view content_type, std::string_view content)
+    Response AbstractMessageBox::Ask(std::string_view content_type, std::string_view content)
     {
         const auto correlation_id = NextCorrelationId();
         auto future = [&]() {
-            std::promise<Answer> promise;
+            std::promise<Response> promise;
             auto future_value = promise.get_future();
             {
                 std::lock_guard pending_lock{pending_answers_mutex_};
@@ -123,13 +123,13 @@ namespace Minx::ZMesh
         return future.get();
     }
 
-    Answer AbstractMessageBox::Ask(std::string_view content_type,
+    Response AbstractMessageBox::Ask(std::string_view content_type,
                                    std::string_view content,
                                    std::chrono::milliseconds timeout)
     {
         const auto correlation_id = NextCorrelationId();
         auto future = [&]() {
-            std::promise<Answer> promise;
+            std::promise<Response> promise;
             auto future_value = promise.get_future();
             {
                 std::lock_guard pending_lock{pending_answers_mutex_};
@@ -157,13 +157,13 @@ namespace Minx::ZMesh
         return future.get();
     }
 
-    Answer AbstractMessageBox::Ask(std::string_view content_type,
+    Response AbstractMessageBox::Ask(std::string_view content_type,
                                    std::string_view content,
                                    std::stop_token stop_token)
     {
         const auto correlation_id = NextCorrelationId();
         auto future = [&]() {
-            std::promise<Answer> promise;
+            std::promise<Response> promise;
             auto future_value = promise.get_future();
             {
                 std::lock_guard pending_lock{pending_answers_mutex_};
@@ -357,7 +357,7 @@ namespace Minx::ZMesh
                                             const std::string& content_type,
                                             const std::string& content)
     {
-        std::promise<Answer> promise;
+        std::promise<Response> promise;
         {
             std::lock_guard lock{pending_answers_mutex_};
             if (auto it = pending_answers_.find(correlation_id); it != pending_answers_.end())
@@ -371,7 +371,7 @@ namespace Minx::ZMesh
             }
         }
 
-        promise.set_value(Answer{content_type, content});
+        promise.set_value(Response{content_type, content});
     }
 
     void AbstractMessageBox::SendMessage(MessageType type,
@@ -399,12 +399,12 @@ namespace Minx::ZMesh
         socket_.send(payload_frame, zmq::send_flags::none);
     }
 
-    void AbstractMessageBox::SendAnswer(const std::string& correlation_id, const Answer& answer) const
+    void AbstractMessageBox::SendAnswer(const std::string& correlation_id, const Response& response) const
     {
         const_cast<AbstractMessageBox*>(this)->SendMessage(MessageType::Answer,
-                                                           answer.content_type,
-                                                           correlation_id,
-                                                           answer.content);
+                                                          response.content_type,
+                                                          correlation_id,
+                                                          response.content);
     }
 
     std::string AbstractMessageBox::NextCorrelationId()

@@ -1,8 +1,8 @@
-#include "Minx/ZMesh/Answer.h"
+#include "Minx/ZMesh/Response.h"
 
 namespace Minx::ZMesh
 {
-    std::string Answer::ToString() const
+    std::string Response::ToString() const
     {
         return content_type + ": " + content;
     }

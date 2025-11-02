@@ -29,7 +29,7 @@ int main()
 
     responder->TryAnswer("example/question", [](const std::string& payload) {
         std::cout << "[responder] question payload: " << payload << std::endl;
-        return Minx::ZMesh::Answer{
+        return Minx::ZMesh::Response{
             .content_type = "example/answer",
             .content = std::string{"replying to: "} + payload,
         };

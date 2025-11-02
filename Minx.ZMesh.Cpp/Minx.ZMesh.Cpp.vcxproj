@@ -81,14 +81,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\Minx\ZMesh\AbstractMessageBox.h" />
-    <ClInclude Include="include\Minx\ZMesh\Answer.h" />
+    <ClInclude Include="include\Minx\ZMesh\Response.h" />
     <ClInclude Include="include\Minx\ZMesh\IAbstractMessageBox.h" />
     <ClInclude Include="include\Minx\ZMesh\MessageReceivedEventArgs.h" />
     <ClInclude Include="include\Minx\ZMesh\PendingQuestion.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AbstractMessageBox.cpp" />
-    <ClCompile Include="src\Answer.cpp" />
+    <ClCompile Include="src\Response.cpp" />
     <ClCompile Include="src\MessageReceivedEventArgs.cpp" />
     <ClCompile Include="src\PendingQuestion.cpp" />
   </ItemGroup>

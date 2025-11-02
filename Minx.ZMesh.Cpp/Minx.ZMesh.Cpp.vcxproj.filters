@@ -12,7 +12,7 @@
     <ClInclude Include="include\Minx\ZMesh\AbstractMessageBox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Minx\ZMesh\Answer.h">
+    <ClInclude Include="include\Minx\ZMesh\Response.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\Minx\ZMesh\IAbstractMessageBox.h">
@@ -29,7 +29,7 @@
     <ClCompile Include="src\AbstractMessageBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Answer.cpp">
+    <ClCompile Include="src\Response.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\MessageReceivedEventArgs.cpp">

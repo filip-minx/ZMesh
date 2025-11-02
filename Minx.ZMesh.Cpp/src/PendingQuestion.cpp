@@ -41,7 +41,7 @@ namespace Minx::ZMesh
         return content_;
     }
 
-    void PendingQuestion::Answer(const Answer& answer) const
+    void PendingQuestion::Answer(const Response& response) const
     {
         if (!Valid())
         {
@@ -54,7 +54,7 @@ namespace Minx::ZMesh
             throw std::runtime_error{"Message box no longer available to answer question."};
         }
 
-        owner->SendAnswer(correlation_id_, answer);
+        owner->SendAnswer(correlation_id_, response);
     }
 }
 

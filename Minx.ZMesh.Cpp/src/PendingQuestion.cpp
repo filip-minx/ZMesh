@@ -2,6 +2,10 @@
 
 #include "Minx/ZMesh/AbstractMessageBox.h"
 
+#ifdef Answer
+#    undef Answer
+#endif
+
 #include <stdexcept>
 
 namespace Minx::ZMesh
@@ -44,14 +48,13 @@ namespace Minx::ZMesh
             throw std::logic_error{"PendingQuestion is not valid."};
         }
 
-        if (auto owner = owner_.lock(); owner)
-        {
-            owner->SendAnswer(correlation_id_, answer);
-        }
-        else
+        auto owner = owner_.lock();
+        if (!owner)
         {
             throw std::runtime_error{"Message box no longer available to answer question."};
         }
+
+        owner->SendAnswer(correlation_id_, answer);
     }
 }
 

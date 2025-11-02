@@ -1,4 +1,4 @@
-#include "Minx/ZMesh/AbstractMessageBox.h"
+#include "Minx/ZMesh/ZMesh.h"
 
 #include <chrono>
 #include <iostream>
@@ -12,12 +12,13 @@ int main()
 {
     const std::string endpoint{"tcp://127.0.0.1:5566"};
 
-    auto responder = std::make_shared<Minx::ZMesh::AbstractMessageBox>(
-        endpoint,
-        Minx::ZMesh::AbstractMessageBox::ConnectionMode::Bind);
-    auto caller = std::make_shared<Minx::ZMesh::AbstractMessageBox>(
-        endpoint,
-        Minx::ZMesh::AbstractMessageBox::ConnectionMode::Connect);
+    Minx::ZMesh::ZMesh mesh{{
+        {"responder", {endpoint, Minx::ZMesh::AbstractMessageBox::ConnectionMode::Bind}},
+        {"caller", {endpoint, Minx::ZMesh::AbstractMessageBox::ConnectionMode::Connect}},
+    }};
+
+    auto responder = mesh.At("responder");
+    auto caller = mesh.At("caller");
 
     responder->OnTellReceived([](const Minx::ZMesh::MessageReceivedEventArgs& args) {
         std::cout << "[responder] tell received (type=" << args.ContentType() << ")" << std::endl;
@@ -29,7 +30,7 @@ int main()
 
     responder->TryAnswer("example/question", [](const std::string& payload) {
         std::cout << "[responder] question payload: " << payload << std::endl;
-        return Minx::ZMesh::Response{
+        return Minx::ZMesh::MessageResponse{
             .content_type = "example/answer",
             .content = std::string{"replying to: "} + payload,
         };

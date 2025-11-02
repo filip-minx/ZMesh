@@ -12,7 +12,7 @@
     <ClInclude Include="include\Minx\ZMesh\AbstractMessageBox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\Minx\ZMesh\Response.h">
+    <ClInclude Include="include\Minx\ZMesh\MessageResponse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\Minx\ZMesh\IAbstractMessageBox.h">
@@ -24,18 +24,24 @@
     <ClInclude Include="include\Minx\ZMesh\PendingQuestion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Minx\ZMesh\ZMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AbstractMessageBox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Response.cpp">
+    <ClCompile Include="src\MessageResponse.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\MessageReceivedEventArgs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\PendingQuestion.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ZMesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

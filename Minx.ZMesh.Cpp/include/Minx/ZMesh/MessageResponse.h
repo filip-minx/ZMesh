@@ -4,7 +4,7 @@
 
 namespace Minx::ZMesh
 {
-    struct Response
+    struct MessageResponse
     {
         std::string content_type;
         std::string content;

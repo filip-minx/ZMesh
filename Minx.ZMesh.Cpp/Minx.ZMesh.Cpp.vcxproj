@@ -81,16 +81,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\Minx\ZMesh\AbstractMessageBox.h" />
-    <ClInclude Include="include\Minx\ZMesh\Response.h" />
+    <ClInclude Include="include\Minx\ZMesh\MessageResponse.h" />
     <ClInclude Include="include\Minx\ZMesh\IAbstractMessageBox.h" />
     <ClInclude Include="include\Minx\ZMesh\MessageReceivedEventArgs.h" />
     <ClInclude Include="include\Minx\ZMesh\PendingQuestion.h" />
+    <ClInclude Include="include\Minx\ZMesh\ZMesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\AbstractMessageBox.cpp" />
-    <ClCompile Include="src\Response.cpp" />
+    <ClCompile Include="src\MessageResponse.cpp" />
     <ClCompile Include="src\MessageReceivedEventArgs.cpp" />
     <ClCompile Include="src\PendingQuestion.cpp" />
+    <ClCompile Include="src\ZMesh.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

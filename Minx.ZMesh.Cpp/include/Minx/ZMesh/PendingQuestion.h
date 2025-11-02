@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Response.h"
+#include "MessageResponse.h"
 
 #include <memory>
 #include <string>
@@ -28,7 +28,7 @@ namespace Minx::ZMesh
         [[nodiscard]] const std::string& ContentType() const noexcept;
         [[nodiscard]] const std::string& Content() const noexcept;
 
-        void Answer(const Response& response) const;
+        void Answer(const MessageResponse& response) const;
 
     private:
         std::weak_ptr<AbstractMessageBox> owner_;

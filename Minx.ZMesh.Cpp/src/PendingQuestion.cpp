@@ -41,7 +41,7 @@ namespace Minx::ZMesh
         return content_;
     }
 
-    void PendingQuestion::Answer(const Response& response) const
+    void PendingQuestion::Answer(const MessageResponse& response) const
     {
         if (!Valid())
         {

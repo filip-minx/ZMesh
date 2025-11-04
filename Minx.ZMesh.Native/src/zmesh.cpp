@@ -34,6 +34,16 @@ void EnsureRecv(zmq::socket_t& socket,
     }
 }
 
+std::string FrameToString(const zmq::message_t& frame, bool trim_nulls = true) {
+    std::string value(static_cast<const char*>(frame.data()), frame.size());
+    if (trim_nulls) {
+        while (!value.empty() && value.back() == '\0') {
+            value.pop_back();
+        }
+    }
+    return value;
+}
+
 } // namespace
 
 ZMesh::ZMesh(std::optional<std::string> address,
@@ -107,15 +117,22 @@ void ZMesh::RouterLoop(std::stop_token stop_token) {
                 EnsureRecv(*router_, content_frame, "request content");
 
                 const std::string dealer_identity(static_cast<char*>(identity_frame.data()), identity_frame.size());
-                const std::string message_box_name(static_cast<char*>(message_box_name_frame.data()), message_box_name_frame.size());
-                const std::string message_type(static_cast<char*>(message_type_frame.data()), message_type_frame.size());
-                const std::string correlation_id(static_cast<char*>(correlation_frame.data()), correlation_frame.size());
-                const std::string content_type(static_cast<char*>(content_type_frame.data()), content_type_frame.size());
-                const std::string content(static_cast<char*>(content_frame.data()), content_frame.size());
+                const std::string message_box_name = FrameToString(message_box_name_frame);
+                const std::string message_type_string = FrameToString(message_type_frame);
+                const std::string correlation_id = FrameToString(correlation_frame);
+                const std::string content_type = FrameToString(content_type_frame);
+                const std::string content = FrameToString(content_frame, false);
 
-                if (message_type == to_string(MessageType::Tell)) {
+                MessageType message_type;
+                try {
+                    message_type = message_type_from_string(message_type_string);
+                } catch (...) {
+                    continue;
+                }
+
+                if (message_type == MessageType::Tell) {
                     DispatchTell(message_box_name, content_type, content);
-                } else if (message_type == to_string(MessageType::Question)) {
+                } else if (message_type == MessageType::Question) {
                     DispatchQuestion(dealer_identity, message_box_name, correlation_id, content_type, content);
                 }
             }

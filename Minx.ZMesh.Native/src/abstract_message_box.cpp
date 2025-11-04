@@ -34,6 +34,16 @@ void EnsureRecv(zmq::socket_t& socket,
     }
 }
 
+std::string FrameToString(const zmq::message_t& frame, bool trim_nulls = true) {
+    std::string value(static_cast<const char*>(frame.data()), frame.size());
+    if (trim_nulls) {
+        while (!value.empty() && value.back() == '\0') {
+            value.pop_back();
+        }
+    }
+    return value;
+}
+
 } // namespace
 
 AbstractMessageBox::AbstractMessageBox(std::string name,
@@ -234,12 +244,19 @@ void AbstractMessageBox::DealerLoop(std::stop_token stop_token) {
             EnsureRecv(dealer_, content_type_frame, "answer content type");
             EnsureRecv(dealer_, content_frame, "answer content");
 
-            const std::string message_type(static_cast<char*>(message_type_frame.data()), message_type_frame.size());
-            const std::string correlation_id(static_cast<char*>(correlation_frame.data()), correlation_frame.size());
-            const std::string content_type(static_cast<char*>(content_type_frame.data()), content_type_frame.size());
-            const std::string content(static_cast<char*>(content_frame.data()), content_frame.size());
+            const std::string message_type_string = FrameToString(message_type_frame);
+            const std::string correlation_id = FrameToString(correlation_frame);
+            const std::string content_type = FrameToString(content_type_frame);
+            const std::string content = FrameToString(content_frame, false);
 
-            if (message_type == to_string(MessageType::Answer)) {
+            MessageType message_type;
+            try {
+                message_type = message_type_from_string(message_type_string);
+            } catch (...) {
+                continue;
+            }
+
+            if (message_type == MessageType::Answer) {
                 ReceiveAnswer(AnswerMessage{.message_box_name = name_,
                                             .correlation_id = correlation_id,
                                             .content_type = content_type,

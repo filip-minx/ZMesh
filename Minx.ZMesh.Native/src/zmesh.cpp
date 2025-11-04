@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include "minx/zmesh/abstract_message_box.hpp"
@@ -9,6 +11,30 @@
 #include "minx/zmesh/types.hpp"
 
 namespace minx::zmesh {
+
+namespace {
+
+void EnsureSend(zmq::socket_t& socket,
+                const zmq::const_buffer& buffer,
+                zmq::send_flags flags,
+                std::string_view operation) {
+    const auto sent = socket.send(buffer, flags);
+    if (!sent) {
+        throw std::runtime_error("ZeroMQ send failed during " + std::string(operation));
+    }
+}
+
+void EnsureRecv(zmq::socket_t& socket,
+                zmq::message_t& frame,
+                std::string_view operation,
+                zmq::recv_flags flags = zmq::recv_flags::none) {
+    const auto received = socket.recv(frame, flags);
+    if (!received) {
+        throw std::runtime_error("ZeroMQ recv failed while reading " + std::string(operation));
+    }
+}
+
+} // namespace
 
 ZMesh::ZMesh(std::optional<std::string> address,
              std::unordered_map<std::string, std::string> system_map)
@@ -79,12 +105,12 @@ void ZMesh::RouterLoop(std::stop_token stop_token) {
                 zmq::message_t content_type_frame;
                 zmq::message_t content_frame;
 
-                router_->recv(identity_frame, zmq::recv_flags::none);
-                router_->recv(message_box_name_frame, zmq::recv_flags::none);
-                router_->recv(message_type_frame, zmq::recv_flags::none);
-                router_->recv(correlation_frame, zmq::recv_flags::none);
-                router_->recv(content_type_frame, zmq::recv_flags::none);
-                router_->recv(content_frame, zmq::recv_flags::none);
+                EnsureRecv(*router_, identity_frame, "request identity");
+                EnsureRecv(*router_, message_box_name_frame, "request message box name");
+                EnsureRecv(*router_, message_type_frame, "request type");
+                EnsureRecv(*router_, correlation_frame, "request correlation id");
+                EnsureRecv(*router_, content_type_frame, "request content type");
+                EnsureRecv(*router_, content_frame, "request content");
 
                 const std::string dealer_identity(static_cast<char*>(identity_frame.data()), identity_frame.size());
                 const std::string message_box_name(static_cast<char*>(message_box_name_frame.data()), message_box_name_frame.size());
@@ -168,12 +194,24 @@ void ZMesh::SendPendingAnswers() {
 
     IdentityMessage<AnswerMessage> identity_message;
     while (answer_queue_->try_pop(identity_message)) {
-        router_->send(zmq::buffer(identity_message.dealer_identity), zmq::send_flags::sndmore);
-        router_->send(zmq::buffer(std::string(to_string(MessageType::Answer))), zmq::send_flags::sndmore);
-        router_->send(zmq::buffer(identity_message.message.message_box_name), zmq::send_flags::sndmore);
-        router_->send(zmq::buffer(identity_message.message.correlation_id), zmq::send_flags::sndmore);
-        router_->send(zmq::buffer(identity_message.message.content_type), zmq::send_flags::sndmore);
-        router_->send(zmq::buffer(identity_message.message.content), zmq::send_flags::none);
+        EnsureSend(*router_, zmq::buffer(identity_message.dealer_identity), zmq::send_flags::sndmore, "answer identity");
+        EnsureSend(*router_,
+                   zmq::buffer(std::string(to_string(MessageType::Answer))),
+                   zmq::send_flags::sndmore,
+                   "answer type");
+        EnsureSend(*router_,
+                   zmq::buffer(identity_message.message.message_box_name),
+                   zmq::send_flags::sndmore,
+                   "answer message box");
+        EnsureSend(*router_,
+                   zmq::buffer(identity_message.message.correlation_id),
+                   zmq::send_flags::sndmore,
+                   "answer correlation");
+        EnsureSend(*router_,
+                   zmq::buffer(identity_message.message.content_type),
+                   zmq::send_flags::sndmore,
+                   "answer content type");
+        EnsureSend(*router_, zmq::buffer(identity_message.message.content), zmq::send_flags::none, "answer content");
     }
 }
 

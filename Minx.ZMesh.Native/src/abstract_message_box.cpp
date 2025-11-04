@@ -3,12 +3,38 @@
 #include <algorithm>
 #include <chrono>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
 #include "minx/zmesh/pending_question.hpp"
 #include "minx/zmesh/types.hpp"
 
 namespace minx::zmesh {
+
+namespace {
+
+void EnsureSend(zmq::socket_t& socket,
+                const zmq::const_buffer& buffer,
+                zmq::send_flags flags,
+                std::string_view operation) {
+    const auto sent = socket.send(buffer, flags);
+    if (!sent) {
+        throw std::runtime_error("ZeroMQ send failed during " + std::string(operation));
+    }
+}
+
+void EnsureRecv(zmq::socket_t& socket,
+                zmq::message_t& frame,
+                std::string_view operation,
+                zmq::recv_flags flags = zmq::recv_flags::none) {
+    const auto received = socket.recv(frame, flags);
+    if (!received) {
+        throw std::runtime_error("ZeroMQ recv failed while reading " + std::string(operation));
+    }
+}
+
+} // namespace
 
 AbstractMessageBox::AbstractMessageBox(std::string name,
                                        std::string address,
@@ -202,11 +228,11 @@ void AbstractMessageBox::DealerLoop(std::stop_token stop_token) {
             zmq::message_t content_type_frame;
             zmq::message_t content_frame;
 
-            dealer_.recv(message_type_frame, zmq::recv_flags::none);
-            dealer_.recv(message_box_name_frame, zmq::recv_flags::none);
-            dealer_.recv(correlation_frame, zmq::recv_flags::none);
-            dealer_.recv(content_type_frame, zmq::recv_flags::none);
-            dealer_.recv(content_frame, zmq::recv_flags::none);
+            EnsureRecv(dealer_, message_type_frame, "answer message type");
+            EnsureRecv(dealer_, message_box_name_frame, "answer message box name");
+            EnsureRecv(dealer_, correlation_frame, "answer correlation id");
+            EnsureRecv(dealer_, content_type_frame, "answer content type");
+            EnsureRecv(dealer_, content_frame, "answer content");
 
             const std::string message_type(static_cast<char*>(message_type_frame.data()), message_type_frame.size());
             const std::string correlation_id(static_cast<char*>(correlation_frame.data()), correlation_frame.size());
@@ -237,19 +263,22 @@ void AbstractMessageBox::DealerLoop(std::stop_token stop_token) {
 }
 
 void AbstractMessageBox::SendMessage(const TellMessage& message) {
-    dealer_.send(zmq::buffer(message.message_box_name), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(std::string(to_string(MessageType::Tell))), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(std::string{}), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(message.content_type), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(message.content), zmq::send_flags::none);
+    EnsureSend(dealer_, zmq::buffer(message.message_box_name), zmq::send_flags::sndmore, "tell envelope");
+    EnsureSend(dealer_, zmq::buffer(std::string(to_string(MessageType::Tell))), zmq::send_flags::sndmore, "tell type");
+    EnsureSend(dealer_, zmq::buffer(std::string{}), zmq::send_flags::sndmore, "tell delimiter");
+    EnsureSend(dealer_, zmq::buffer(message.content_type), zmq::send_flags::sndmore, "tell content type");
+    EnsureSend(dealer_, zmq::buffer(message.content), zmq::send_flags::none, "tell content");
 }
 
 void AbstractMessageBox::SendMessage(const QuestionMessage& message) {
-    dealer_.send(zmq::buffer(message.message_box_name), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(std::string(to_string(MessageType::Question))), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(message.correlation_id), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(message.content_type), zmq::send_flags::sndmore);
-    dealer_.send(zmq::buffer(message.content), zmq::send_flags::none);
+    EnsureSend(dealer_, zmq::buffer(message.message_box_name), zmq::send_flags::sndmore, "question envelope");
+    EnsureSend(dealer_,
+               zmq::buffer(std::string(to_string(MessageType::Question))),
+               zmq::send_flags::sndmore,
+               "question type");
+    EnsureSend(dealer_, zmq::buffer(message.correlation_id), zmq::send_flags::sndmore, "question correlation");
+    EnsureSend(dealer_, zmq::buffer(message.content_type), zmq::send_flags::sndmore, "question content type");
+    EnsureSend(dealer_, zmq::buffer(message.content), zmq::send_flags::none, "question content");
 }
 
 void AbstractMessageBox::SendAnswer(const PendingQuestion& pending_question, const Answer& answer) {

@@ -64,11 +64,6 @@ ZMesh::~ZMesh() {
     }
 
     std::lock_guard lock(message_boxes_mutex_);
-    for (auto& [name, weak_box] : message_boxes_) {
-        if (auto box = weak_box.lock()) {
-            box.reset();
-        }
-    }
     message_boxes_.clear();
 }
 
@@ -76,9 +71,7 @@ std::shared_ptr<IAbstractMessageBox> ZMesh::At(const std::string& name) {
     std::lock_guard lock(message_boxes_mutex_);
     auto it = message_boxes_.find(name);
     if (it != message_boxes_.end()) {
-        if (auto existing = it->second.lock()) {
-            return existing;
-        }
+        return it->second;
     }
 
     auto map_it = system_map_.find(name);
@@ -87,8 +80,9 @@ std::shared_ptr<IAbstractMessageBox> ZMesh::At(const std::string& name) {
     }
 
     auto message_box = std::make_shared<AbstractMessageBox>(name, map_it->second, context_, answer_queue_);
-    message_boxes_[name] = message_box;
-    return message_box;
+    auto [inserted_it, inserted] = message_boxes_.emplace(name, std::move(message_box));
+    (void)inserted;
+    return inserted_it->second;
 }
 
 void ZMesh::RouterLoop(std::stop_token stop_token) {
@@ -143,7 +137,7 @@ void ZMesh::DispatchTell(const std::string& message_box_name,
         std::lock_guard lock(message_boxes_mutex_);
         auto it = message_boxes_.find(message_box_name);
         if (it != message_boxes_.end()) {
-            message_box = it->second.lock();
+            message_box = it->second;
         }
     }
 
@@ -168,7 +162,7 @@ void ZMesh::DispatchQuestion(const std::string& dealer_identity,
         std::lock_guard lock(message_boxes_mutex_);
         auto it = message_boxes_.find(message_box_name);
         if (it != message_boxes_.end()) {
-            message_box = it->second.lock();
+            message_box = it->second;
         }
     }
 

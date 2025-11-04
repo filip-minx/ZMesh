@@ -42,7 +42,7 @@ private:
     std::jthread router_thread_;
 
     std::mutex message_boxes_mutex_;
-    std::unordered_map<std::string, std::weak_ptr<AbstractMessageBox>> message_boxes_;
+    std::unordered_map<std::string, std::shared_ptr<AbstractMessageBox>> message_boxes_;
 };
 
 } // namespace minx::zmesh

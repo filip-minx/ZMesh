@@ -1,0 +1,229 @@
+#include "minx/zmesh/zmesh.hpp"
+
+#include <chrono>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+
+#include "minx/zmesh/abstract_message_box.hpp"
+#include "minx/zmesh/pending_question.hpp"
+#include "minx/zmesh/types.hpp"
+
+namespace minx::zmesh {
+
+namespace {
+
+void EnsureSend(zmq::socket_t& socket,
+                const zmq::const_buffer& buffer,
+                zmq::send_flags flags,
+                std::string_view operation) {
+    const auto sent = socket.send(buffer, flags);
+    if (!sent) {
+        throw std::runtime_error("ZeroMQ send failed during " + std::string(operation));
+    }
+}
+
+void EnsureRecv(zmq::socket_t& socket,
+                zmq::message_t& frame,
+                std::string_view operation,
+                zmq::recv_flags flags = zmq::recv_flags::none) {
+    const auto received = socket.recv(frame, flags);
+    if (!received) {
+        throw std::runtime_error("ZeroMQ recv failed while reading " + std::string(operation));
+    }
+}
+
+std::string FrameToString(const zmq::message_t& frame, bool trim_nulls = true) {
+    std::string value(static_cast<const char*>(frame.data()), frame.size());
+    if (trim_nulls) {
+        while (!value.empty() && value.back() == '\0') {
+            value.pop_back();
+        }
+    }
+    return value;
+}
+
+} // namespace
+
+ZMesh::ZMesh(std::optional<std::string> address,
+             std::unordered_map<std::string, std::string> system_map)
+    : context_(1),
+      system_map_(std::move(system_map)),
+      answer_queue_(std::make_shared<AnswerQueue>()) {
+    if (address && !address->empty()) {
+        router_ = std::make_unique<zmq::socket_t>(context_, zmq::socket_type::router);
+        router_->set(zmq::sockopt::linger, 0);
+        router_->bind("tcp://" + *address);
+        router_thread_ = std::jthread([this](std::stop_token stop_token) { RouterLoop(stop_token); });
+    }
+}
+
+ZMesh::~ZMesh() {
+    if (router_thread_.joinable()) {
+        router_thread_.request_stop();
+        answer_queue_->close();
+        router_thread_.join();
+    }
+
+    if (router_) {
+        try {
+            router_->close();
+        } catch (...) {
+        }
+    }
+
+    std::lock_guard lock(message_boxes_mutex_);
+    message_boxes_.clear();
+}
+
+std::shared_ptr<IAbstractMessageBox> ZMesh::At(const std::string& name) {
+    std::lock_guard lock(message_boxes_mutex_);
+    auto it = message_boxes_.find(name);
+    if (it != message_boxes_.end()) {
+        return it->second;
+    }
+
+    auto map_it = system_map_.find(name);
+    if (map_it == system_map_.end()) {
+        throw std::invalid_argument("Unknown message box: " + name);
+    }
+
+    auto message_box = std::make_shared<AbstractMessageBox>(name, map_it->second, context_, answer_queue_);
+    auto [inserted_it, inserted] = message_boxes_.emplace(name, std::move(message_box));
+    (void)inserted;
+    return inserted_it->second;
+}
+
+void ZMesh::RouterLoop(std::stop_token stop_token) {
+    while (!stop_token.stop_requested()) {
+        if (router_) {
+            zmq::pollitem_t items[] = {{*router_, 0, ZMQ_POLLIN, 0}};
+            zmq::poll(items, 1, std::chrono::milliseconds{10});
+
+            if (items[0].revents & ZMQ_POLLIN) {
+                zmq::message_t identity_frame;
+                zmq::message_t message_box_name_frame;
+                zmq::message_t message_type_frame;
+                zmq::message_t correlation_frame;
+                zmq::message_t content_type_frame;
+                zmq::message_t content_frame;
+
+                EnsureRecv(*router_, identity_frame, "request identity");
+                EnsureRecv(*router_, message_box_name_frame, "request message box name");
+                EnsureRecv(*router_, message_type_frame, "request type");
+                EnsureRecv(*router_, correlation_frame, "request correlation id");
+                EnsureRecv(*router_, content_type_frame, "request content type");
+                EnsureRecv(*router_, content_frame, "request content");
+
+                const std::string dealer_identity(static_cast<char*>(identity_frame.data()), identity_frame.size());
+                const std::string message_box_name = FrameToString(message_box_name_frame);
+                const std::string message_type_string = FrameToString(message_type_frame);
+                const std::string correlation_id = FrameToString(correlation_frame);
+                const std::string content_type = FrameToString(content_type_frame);
+                const std::string content = FrameToString(content_frame, false);
+
+                MessageType message_type;
+                try {
+                    message_type = message_type_from_string(message_type_string);
+                } catch (...) {
+                    continue;
+                }
+
+                if (message_type == MessageType::Tell) {
+                    DispatchTell(message_box_name, content_type, content);
+                } else if (message_type == MessageType::Question) {
+                    DispatchQuestion(dealer_identity, message_box_name, correlation_id, content_type, content);
+                }
+            }
+        }
+
+        SendPendingAnswers();
+
+        if (stop_token.stop_requested()) {
+            break;
+        }
+    }
+}
+
+void ZMesh::DispatchTell(const std::string& message_box_name,
+                         const std::string& content_type,
+                         const std::string& content) {
+    std::shared_ptr<AbstractMessageBox> message_box;
+    {
+        std::lock_guard lock(message_boxes_mutex_);
+        auto it = message_boxes_.find(message_box_name);
+        if (it != message_boxes_.end()) {
+            message_box = it->second;
+        }
+    }
+
+    if (!message_box) {
+        message_box = std::dynamic_pointer_cast<AbstractMessageBox>(At(message_box_name));
+    }
+
+    if (message_box) {
+        message_box->ReceiveTell(TellMessage{.message_box_name = message_box_name,
+                                             .content_type = content_type,
+                                             .content = content});
+    }
+}
+
+void ZMesh::DispatchQuestion(const std::string& dealer_identity,
+                             const std::string& message_box_name,
+                             const std::string& correlation_id,
+                             const std::string& content_type,
+                             const std::string& content) {
+    std::shared_ptr<AbstractMessageBox> message_box;
+    {
+        std::lock_guard lock(message_boxes_mutex_);
+        auto it = message_boxes_.find(message_box_name);
+        if (it != message_boxes_.end()) {
+            message_box = it->second;
+        }
+    }
+
+    if (!message_box) {
+        message_box = std::dynamic_pointer_cast<AbstractMessageBox>(At(message_box_name));
+    }
+
+    if (message_box) {
+        PendingQuestion pending_question{.dealer_identity = dealer_identity,
+                                         .question_message = QuestionMessage{.message_box_name = message_box_name,
+                                                                              .correlation_id = correlation_id,
+                                                                              .content_type = content_type,
+                                                                              .content = content},
+                                         .answer_queue = answer_queue_};
+        message_box->ReceiveQuestion(pending_question);
+    }
+}
+
+void ZMesh::SendPendingAnswers() {
+    if (!router_) {
+        return;
+    }
+
+    IdentityMessage<AnswerMessage> identity_message;
+    while (answer_queue_->try_pop(identity_message)) {
+        EnsureSend(*router_, zmq::buffer(identity_message.dealer_identity), zmq::send_flags::sndmore, "answer identity");
+        EnsureSend(*router_,
+                   zmq::buffer(std::string(to_string(MessageType::Answer))),
+                   zmq::send_flags::sndmore,
+                   "answer type");
+        EnsureSend(*router_,
+                   zmq::buffer(identity_message.message.message_box_name),
+                   zmq::send_flags::sndmore,
+                   "answer message box");
+        EnsureSend(*router_,
+                   zmq::buffer(identity_message.message.correlation_id),
+                   zmq::send_flags::sndmore,
+                   "answer correlation");
+        EnsureSend(*router_,
+                   zmq::buffer(identity_message.message.content_type),
+                   zmq::send_flags::sndmore,
+                   "answer content type");
+        EnsureSend(*router_, zmq::buffer(identity_message.message.content), zmq::send_flags::none, "answer content");
+    }
+}
+
+} // namespace minx::zmesh

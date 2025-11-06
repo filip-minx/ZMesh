@@ -241,7 +241,7 @@ namespace Minx.ZMesh
             var questionMessage = new QuestionMessage
             {
                 ContentType = contentType,
-                Content = content,
+                Content = content ?? string.Empty,
                 MessageBoxName = _name,
                 CorrelationId = correlationId
             };

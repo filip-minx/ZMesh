@@ -110,8 +110,8 @@ void ZMesh::RouterLoop(std::stop_token stop_token) {
                 zmq::message_t content_frame;
 
                 EnsureRecv(*router_, identity_frame, "request identity");
-                EnsureRecv(*router_, message_box_name_frame, "request message box name");
                 EnsureRecv(*router_, message_type_frame, "request type");
+                EnsureRecv(*router_, message_box_name_frame, "request message box name");
                 EnsureRecv(*router_, correlation_frame, "request correlation id");
                 EnsureRecv(*router_, content_type_frame, "request content type");
                 EnsureRecv(*router_, content_frame, "request content");

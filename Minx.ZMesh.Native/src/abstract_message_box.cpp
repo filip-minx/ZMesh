@@ -280,19 +280,19 @@ void AbstractMessageBox::DealerLoop(std::stop_token stop_token) {
 }
 
 void AbstractMessageBox::SendMessage(const TellMessage& message) {
-    EnsureSend(dealer_, zmq::buffer(message.message_box_name), zmq::send_flags::sndmore, "tell envelope");
     EnsureSend(dealer_, zmq::buffer(std::string(to_string(MessageType::Tell))), zmq::send_flags::sndmore, "tell type");
+    EnsureSend(dealer_, zmq::buffer(message.message_box_name), zmq::send_flags::sndmore, "tell envelope");
     EnsureSend(dealer_, zmq::buffer(std::string{}), zmq::send_flags::sndmore, "tell delimiter");
     EnsureSend(dealer_, zmq::buffer(message.content_type), zmq::send_flags::sndmore, "tell content type");
     EnsureSend(dealer_, zmq::buffer(message.content), zmq::send_flags::none, "tell content");
 }
 
 void AbstractMessageBox::SendMessage(const QuestionMessage& message) {
-    EnsureSend(dealer_, zmq::buffer(message.message_box_name), zmq::send_flags::sndmore, "question envelope");
     EnsureSend(dealer_,
                zmq::buffer(std::string(to_string(MessageType::Question))),
                zmq::send_flags::sndmore,
                "question type");
+    EnsureSend(dealer_, zmq::buffer(message.message_box_name), zmq::send_flags::sndmore, "question envelope");
     EnsureSend(dealer_, zmq::buffer(message.correlation_id), zmq::send_flags::sndmore, "question correlation");
     EnsureSend(dealer_, zmq::buffer(message.content_type), zmq::send_flags::sndmore, "question content type");
     EnsureSend(dealer_, zmq::buffer(message.content), zmq::send_flags::none, "question content");

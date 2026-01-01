@@ -62,8 +62,8 @@ namespace Minx.ZMesh
         private void HandleMessage(object sender, NetMQSocketEventArgs e)
         {
             var identity = e.Socket.ReceiveFrameString();
-            var messageBoxName = e.Socket.ReceiveFrameString();
             var messageType = (MessageType)Enum.Parse(typeof(MessageType), e.Socket.ReceiveFrameString());
+            var messageBoxName = e.Socket.ReceiveFrameString();
             var correlationId = e.Socket.ReceiveFrameString();
             var contentType = e.Socket.ReceiveFrameString();
             var content = e.Socket.ReceiveFrameString();

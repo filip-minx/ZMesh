@@ -86,8 +86,8 @@ namespace Minx.ZMesh
                 {
                     case TellMessage m:
                         _dealerSocket
-                            .SendMoreFrame(m.MessageBoxName)
                             .SendMoreFrame(m.MessageType.ToString())
+                            .SendMoreFrame(m.MessageBoxName)
                             .SendMoreFrame(string.Empty)
                             .SendMoreFrame(m.ContentType)
                             .SendFrame(m.Content);
@@ -95,8 +95,8 @@ namespace Minx.ZMesh
 
                     case QuestionMessage m:
                         _dealerSocket
-                            .SendMoreFrame(m.MessageBoxName)
                             .SendMoreFrame(m.MessageType.ToString())
+                            .SendMoreFrame(m.MessageBoxName)
                             .SendMoreFrame(m.CorrelationId)
                             .SendMoreFrame(m.ContentType)
                             .SendFrame(m.Content);

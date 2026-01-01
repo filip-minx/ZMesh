@@ -1,16 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using Minx.ZMesh;
 
-Console.WriteLine("Hello, World!");
-
 var systemMap = new Dictionary<string, string>()
 {
-    { "BoxA", "127.0.0.1:5000" },
-    { "BoxB", "127.0.0.1:5001" }
+    { "BoxA", "127.0.0.1:7000" },
+    { "BoxB", "127.0.0.1:7001" }
 };
 
-var zmeshNodeA = new ZMesh("127.0.0.1:5000", systemMap);
-var zmeshNodeB = new ZMesh("127.0.0.1:5001", systemMap);
+var zmeshNodeA = new ZMesh("127.0.0.1:7000", systemMap);
+var zmeshNodeB = new ZMesh("127.0.0.1:7001", systemMap);
 
 // Typically these nodes would exist one per process.
 // All of the processes share the message boxes.

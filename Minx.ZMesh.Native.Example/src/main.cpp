@@ -63,7 +63,8 @@ int main() {
         }
     });
 
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(120s);
+
     worker_a.request_stop();
     worker_b.request_stop();
 
